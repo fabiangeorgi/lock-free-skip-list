@@ -198,8 +198,8 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
         } else {
             // TODO don't think that works
             newNode->successor = {nextNode, false, false};
-            auto nextNodeSuccessor = nextNode->successor.load();
-            auto result = prevNode->successor.compare_exchange_weak(nextNodeSuccessor, newNode->successor, std::memory_order_release, std::memory_order_relaxed);
+            auto prevNodeSuccessor = prevNode->successor.load();
+            auto result = prevNode->successor.compare_exchange_weak(prevNodeSuccessor, {newNode, false, false}, std::memory_order_release, std::memory_order_relaxed);
 
             if (result == true) {
                 return std::make_pair(prevNode, newNode);
