@@ -167,11 +167,27 @@ TEST(SingleThreadedSkipListTest, IteratorInterface) {
   matches_array(sl, expected);
 }
 
+TEST(SingleThreadedSkipListTest, SimpleInsertAndRemoveOwn) {
+    SkipList sl{};
+    ASSERT_TRUE(sl.insert(10, 100));
+    sl.print();
+
+    std::optional<Element> element1 = sl.find(10);
+    matches_element(element1, 100);
+
+    std::optional<Element> element2 = sl.remove(10);
+    matches_element(element2, 100);
+
+    std::optional<Element> element3 = sl.find(10);
+    ASSERT_FALSE(element3.has_value());
+}
+
 TEST(SingleThreadedSkipListTest, SimpleInsertAndRemove) {
   SkipList sl{};
   ASSERT_TRUE(sl.insert(10, 100));
   ASSERT_TRUE(sl.insert(11, 110));
   ASSERT_TRUE(sl.insert(12, 120));
+  sl.print();
   {
     std::optional<Element> element = sl.remove(11);
     matches_element(element, 110);

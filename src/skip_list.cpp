@@ -160,8 +160,8 @@ std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
     bool _result; // don't need it
 
     while (nextNode->key <= k) {
-        // TODO need a smarter way to deal with the flags
-        while (nextNode->towerRoot->successor.load().marked() == true) {
+        // NOTE: ADDED nextNode->towerRoot != nullptr, because otherwise we get a nullptr for the tail node, which does not have a successor
+        while (nextNode->towerRoot != nullptr && nextNode->towerRoot->successor.load().marked() == true) {
             std::tie(currNode, status, _result) = tryFlagNode(currNode, nextNode);
             if (status == true) { // INSERTED
                 helpFlagged(currNode, nextNode);
@@ -292,7 +292,7 @@ void SkipList::tryMark(Node *delNode) {
         if (delNode->successor.load().flagged() == true) {
             helpFlagged(delNode, delNode->successor.load().right());
         }
-    } while (delNode->successor.load().marked() == true);
+    } while (delNode->successor.load().marked() != true);
 }
 
 void SkipList::print() {
