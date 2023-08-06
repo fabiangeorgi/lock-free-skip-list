@@ -3,16 +3,17 @@
 #include <optional>
 
 SkipList::SkipList() {
-    Node* topHead = new Node(MIN_KEY);
-    Node* topTail = new Node(MAX_KEY);
+    Node *topHead = new Node(MIN_KEY);
+    Node *topTail = new Node(MAX_KEY);
     topHead->successor.store({topTail, false, false});
 
     auto previousHead = topHead;
     auto previousTail = topTail;
-    for (int i = 0; i < MAX_LEVEL - 1; i++) { // create for the whole length // -1 because we created the top nodes already
+    for (int i = 0;
+         i < MAX_LEVEL - 1; i++) { // create for the whole length // -1 because we created the top nodes already
         // TODO cleanup
-        Node* head = new Node(MIN_KEY, previousHead);
-        Node* tail = new Node(MAX_KEY, previousTail);
+        Node *head = new Node(MIN_KEY, previousHead);
+        Node *tail = new Node(MAX_KEY, previousTail);
         head->successor.store({tail, false, false});
         previousHead = head;
         previousTail = tail;
@@ -30,15 +31,16 @@ bool SkipList::insert(Key key, Element element) {
         return false;
     }
     // create the new root node
-    Node* newRNode = new Node(key, element);
-    Node* newNode = newRNode;
+    Node *newRNode = new Node(key, element);
+    Node *newNode = newRNode;
 
-    // determinte the desired height of the tower
+    // determine the desired height of the tower
     uint64_t towerHeight = 1;
     while (rand() % 2 && towerHeight <= MAX_LEVEL - 1) {
         towerHeight++;
     }
 
+    // the level at which newNode will be inserted
     uint64_t currV = 1;
     while (true) {
         auto prevNodeResultPair = insertNode(newNode, prevNode, nextNode);
@@ -54,11 +56,11 @@ bool SkipList::insert(Key key, Element element) {
             if (result == newNode && newNode != newRNode) {
                 deleteNode(prevNode, newNode);
             }
-            return newRNode;
+            return true;
         }
         currV++;
         if (currV == towerHeight + 1) { // stop building the tower
-            return newRNode;
+            return true;
         }
         auto lastNode = newNode;
         newNode = new Node(key, lastNode, newRNode);
@@ -86,6 +88,7 @@ std::optional<Element> SkipList::remove(Key key) {
     auto pair = searchToLevel(key - 1, 1);
     auto prevNode = pair.first;
     auto delNode = pair.second;
+
     if (delNode->key != key) {
         return {}; // NO SUCH KEY
     }
@@ -110,6 +113,7 @@ std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
     std::tie(currNode, currV) = findStart(v);
     while (currV > v) {
         std::tie(currNode, nextNode) = searchRight(k, currNode);
+        // TODO currNode down is not defined
         currNode = currNode->down;
         currV--;
     }
@@ -153,23 +157,22 @@ std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
 
 std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targetNode) {
     while (true) {
-        auto successor = prevNode->successor.load();
-        // TODO check if we need to check both
-        if (successor.right == targetNode && successor.flagged == true) {
+        Successor isPredecessorFlagged = {targetNode, false, true};
+        if (prevNode->successor.load() == isPredecessorFlagged) {
             return std::make_tuple(prevNode, true, false);
         }
-        // TODO DON'T KNOW IF THIS REALLY WORKS AS INTENDED -> CHECK IF BUGGED
-        auto newSuccessor = successor;
-        newSuccessor.flagged = true;
-        auto result = prevNode->successor.compare_exchange_weak(successor, newSuccessor, std::memory_order_release, std::memory_order_relaxed);
+        Successor oldSuccessor = {targetNode, false, false};
+        Successor newSuccessor = {targetNode, false, true};
+        auto result = prevNode->successor.compare_exchange_weak(oldSuccessor, newSuccessor, std::memory_order_release,
+                                                                std::memory_order_relaxed);
 
         if (result == true) { // if compare and swap was successful
             return std::make_tuple(prevNode, true, true);
         }
         // compare and swap was not successful -> handle error
         // get new value of node and check if flagged
-        successor = prevNode->successor.load();
-        if (successor.flagged) {
+        auto currentSuccessor = prevNode->successor.load();
+        if (currentSuccessor == isPredecessorFlagged) {
             return std::make_tuple(prevNode, true, false);
         }
         while (prevNode->successor.load().marked) { // possibly failure due to marking -> use back_links
@@ -199,14 +202,16 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
             // TODO don't think that works
             newNode->successor = {nextNode, false, false};
             auto prevNodeSuccessor = prevNode->successor.load();
-            auto result = prevNode->successor.compare_exchange_weak(prevNodeSuccessor, {newNode, false, false}, std::memory_order_release, std::memory_order_relaxed);
+            auto result = prevNode->successor.compare_exchange_weak(prevNodeSuccessor, {newNode, false, false},
+                                                                    std::memory_order_release,
+                                                                    std::memory_order_relaxed);
 
             if (result == true) {
                 return std::make_pair(prevNode, newNode);
             } else {
-                auto prevNodeSuccessor = prevNode->successor.load();
-                if (prevNodeSuccessor.flagged == true) {
-                    helpFlagged(prevNode, prevNodeSuccessor.right);
+                auto successorValue = prevNode->successor.load();
+                if (successorValue.flagged == true) {
+                    helpFlagged(prevNode, successorValue.right);
                 }
                 while (prevNode->successor.load().marked == true) {
                     prevNode = prevNode->backLink;
@@ -241,9 +246,10 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
 
 void SkipList::helpMarked(Node *prevNode, Node *delNode) {
     auto nextNode = delNode->successor.load().right;
-    auto delNodeSuccessor = delNode->successor.load();
-    // TODO check if correct
-    prevNode->successor.compare_exchange_weak(delNodeSuccessor, nextNode->successor, std::memory_order_release, std::memory_order_relaxed);
+
+    Successor oldValue = {delNode, false, true};
+    Successor newValue = {nextNode, false, false};
+    prevNode->successor.compare_exchange_weak(oldValue, newValue, std::memory_order_release, std::memory_order_relaxed);
 }
 
 void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
@@ -257,12 +263,13 @@ void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
 void SkipList::tryMark(Node *delNode) {
     do {
         auto nextNode = delNode->successor.load().right;
-        auto nextNodeSuccessor = nextNode->successor.load();
-        auto newNextNodeSuccessor = nextNodeSuccessor;
-        newNextNodeSuccessor.marked = true;
-        auto result = delNode->successor.compare_exchange_weak(nextNodeSuccessor, newNextNodeSuccessor, std::memory_order_release, std::memory_order_relaxed);
+
+        Successor previous = {nextNode, false, false};
+        Successor newValues = {nextNode, true, false};
+        delNode->successor.compare_exchange_weak(previous, newValues, std::memory_order_release, std::memory_order_relaxed);
+
         if (delNode->successor.load().flagged == true) {
             helpFlagged(delNode, delNode->successor.load().right);
         }
-    } while(delNode->successor.load().marked == true);
+    } while (delNode->successor.load().marked == true);
 }

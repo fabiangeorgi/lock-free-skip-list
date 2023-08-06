@@ -31,6 +31,10 @@ struct Successor { // for the successor fields -> probably a smarter way to do t
     Node *right;
     bool marked;
     bool flagged;
+
+    bool operator== (Successor const& other) const {
+        return right == other.right && marked == other.marked && flagged == other.flagged;
+    }
 };
 
 struct Node {
