@@ -24,17 +24,50 @@ const uint64_t MAX_LEVEL = std::log2(MAX_NUMBER_OF_KEYS) / std::log2(1 / PROBABI
 struct Node;
 
 struct Successor { // for the successor fields -> probably a smarter way to do this
+    uint64_t internal64BitData;
+
     Successor() = default;
 
-    Successor(Node *right, bool marked, bool flagged) : right(right), marked(marked), flagged(flagged) {};
+    Successor(Node *right, bool marked, bool flagged) : internal64BitData(reinterpret_cast<uint64_t>(right)) {
+        if (marked) {
+            internal64BitData = internal64BitData | markedBits;
+        } else if (flagged) {
+            internal64BitData = internal64BitData | flaggedBits;
+        }
+    };
 
-    Node *right;
-    bool marked;
-    bool flagged;
-
-    bool operator== (Successor const& other) const {
-        return right == other.right && marked == other.marked && flagged == other.flagged;
+    Node *right() {
+        return reinterpret_cast<Node *>(internal64BitData & pointerMask);
     }
+
+    bool marked() const {
+        return (internal64BitData & markedBits);
+    }
+
+    bool flagged() const {
+        return (internal64BitData & flaggedBits);
+    }
+
+    bool operator==(Successor const &other) const {
+        return internal64BitData == other.internal64BitData;
+    }
+
+private:
+    // mostly copy and paste from the buffer manager assignment -> using swips, because an atomic datatype can only store 64 bits (e.g. one pointer for node)
+    // so need to do pointer tagging
+
+    // x10
+    static const uint64_t markedBits = uint64_t(2);
+    // x01
+    static const uint64_t flaggedBits = uint64_t(1);
+
+    static const uint8_t NUMBER_OF_BITS_FOR_TAGGING = 2;
+
+    // 3 = x11
+    static const uint64_t comparisonMask = uint64_t(3);
+
+    // we need this to get the address of our node, regardless if its marked or flagged -> so we just zero it out
+    static const uint64_t pointerMask = ~comparisonMask;
 };
 
 struct Node {

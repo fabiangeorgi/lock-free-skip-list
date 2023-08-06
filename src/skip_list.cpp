@@ -52,7 +52,7 @@ bool SkipList::insert(Key key, Element element) {
             return false;
         }
         // check if tower became superfluous
-        if (newRNode->successor.load().marked == true) {
+        if (newRNode->successor.load().marked() == true) {
             if (result == newNode && newNode != newRNode) {
                 deleteNode(prevNode, newNode);
             }
@@ -125,7 +125,7 @@ std::pair<Node *, Level> SkipList::findStart(Level v) {
     auto *currNode = head;
     Level currV = 1;
 
-    while (currNode->up->successor.load().right->key != MAX_KEY || currV < v) {
+    while (currNode->up->successor.load().right()->key != MAX_KEY || currV < v) {
         currNode = currNode->up;
         currV++;
     }
@@ -134,22 +134,22 @@ std::pair<Node *, Level> SkipList::findStart(Level v) {
 }
 
 std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
-    Node *nextNode = currNode->successor.load().right;
+    Node *nextNode = currNode->successor.load().right();
     bool status;
     bool _result; // don't need it
 
     while (nextNode->key <= k) {
         // TODO need a smarter way to deal with the flags
-        while (nextNode->towerRoot->successor.load().marked == true) {
+        while (nextNode->towerRoot->successor.load().marked() == true) {
             std::tie(currNode, status, _result) = tryFlagNode(currNode, nextNode);
             if (status == true) { // INSERTED
                 helpFlagged(currNode, nextNode);
             }
-            nextNode = currNode->successor.load().right;
+            nextNode = currNode->successor.load().right();
         }
         if (nextNode->key <= k) {
             currNode = nextNode;
-            nextNode = currNode->successor.load().right;
+            nextNode = currNode->successor.load().right();
         }
     }
     return std::make_pair(currNode, nextNode);
@@ -175,7 +175,7 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
         if (currentSuccessor == isPredecessorFlagged) {
             return std::make_tuple(prevNode, true, false);
         }
-        while (prevNode->successor.load().marked) { // possibly failure due to marking -> use back_links
+        while (prevNode->successor.load().marked()) { // possibly failure due to marking -> use back_links
             prevNode = prevNode->backLink;
         }
         // TODO don't know if we can just decrease by one (epsilon), but theoretically should be fine
@@ -196,8 +196,8 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
     }
     while (true) {
         auto prevSuccessor = prevNode->successor.load();
-        if (prevSuccessor.flagged == true) {
-            helpFlagged(prevNode, prevSuccessor.right);
+        if (prevSuccessor.flagged() == true) {
+            helpFlagged(prevNode, prevSuccessor.right());
         } else {
             // TODO don't think that works
             newNode->successor = {nextNode, false, false};
@@ -210,10 +210,10 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
                 return std::make_pair(prevNode, newNode);
             } else {
                 auto successorValue = prevNode->successor.load();
-                if (successorValue.flagged == true) {
-                    helpFlagged(prevNode, successorValue.right);
+                if (successorValue.flagged() == true) {
+                    helpFlagged(prevNode, successorValue.right());
                 }
-                while (prevNode->successor.load().marked == true) {
+                while (prevNode->successor.load().marked() == true) {
                     prevNode = prevNode->backLink;
                 }
             }
@@ -245,7 +245,7 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
 }
 
 void SkipList::helpMarked(Node *prevNode, Node *delNode) {
-    auto nextNode = delNode->successor.load().right;
+    auto nextNode = delNode->successor.load().right();
 
     Successor oldValue = {delNode, false, true};
     Successor newValue = {nextNode, false, false};
@@ -254,7 +254,7 @@ void SkipList::helpMarked(Node *prevNode, Node *delNode) {
 
 void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
     delNode->backLink = prevNode;
-    if (delNode->successor.load().marked == false) {
+    if (delNode->successor.load().marked() == false) {
         tryMark(delNode);
     }
     helpMarked(prevNode, delNode);
@@ -262,14 +262,14 @@ void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
 
 void SkipList::tryMark(Node *delNode) {
     do {
-        auto nextNode = delNode->successor.load().right;
+        auto nextNode = delNode->successor.load().right();
 
         Successor previous = {nextNode, false, false};
         Successor newValues = {nextNode, true, false};
         delNode->successor.compare_exchange_weak(previous, newValues, std::memory_order_release, std::memory_order_relaxed);
 
-        if (delNode->successor.load().flagged == true) {
-            helpFlagged(delNode, delNode->successor.load().right);
+        if (delNode->successor.load().flagged() == true) {
+            helpFlagged(delNode, delNode->successor.load().right());
         }
-    } while (delNode->successor.load().marked == true);
+    } while (delNode->successor.load().marked() == true);
 }

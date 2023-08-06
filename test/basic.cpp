@@ -61,6 +61,32 @@
 //
 //   EXPECT_EQ(counter, 2);
 // }
+/////////////////////////////
+///    SUCCESSOR TEST     ///
+/////////////////////////////
+TEST(SuccessorTest, Successor) {
+    Successor emptySuccessor{};
+
+    ASSERT_FALSE(emptySuccessor.marked());
+    ASSERT_FALSE(emptySuccessor.flagged());
+
+    Successor notEmptySuccessor{new Node(1), false, false};
+
+    ASSERT_FALSE(notEmptySuccessor.marked());
+    ASSERT_FALSE(notEmptySuccessor.flagged());
+
+    Node* test = new Node(10);
+    Successor markedSuccessor{test, true, false};
+
+    ASSERT_TRUE(markedSuccessor.marked());
+    ASSERT_FALSE(markedSuccessor.flagged());
+
+    Successor flaggedSuccessor{test, false, true};
+
+    ASSERT_FALSE(flaggedSuccessor.marked());
+    ASSERT_TRUE(flaggedSuccessor.flagged());
+}
+
 
 /////////////////////////////
 /// SINGLE-THREADED TESTS ///
