@@ -20,18 +20,35 @@ constexpr float_t PROBABILITY_CREATING_NODE = 0.5;
 // TODO constexpr does not work with log operations -> find a fix
 const uint64_t MAX_LEVEL = std::log2(MAX_NUMBER_OF_KEYS) / std::log2(1 / PROBABILITY_CREATING_NODE);
 
-// TODO need head and tail nodes -> which don't have some values
-class Node {
-    // constructs a node
-public:
-    Node(Key key, Element element);
+// forward declare
+struct Node;
 
-private:
-    class Successor { // for the successor fields -> probably a smarter way to do this
-        Node *right;
-        bool marked;
-        bool flagged;
-    };
+struct Successor { // for the successor fields -> probably a smarter way to do this
+    Successor() = default;
+
+    Successor(Node *right, bool marked, bool flagged) : right(right), marked(marked), flagged(flagged) {};
+
+    Node *right;
+    bool marked;
+    bool flagged;
+};
+
+struct Node {
+    // constructs a root node
+    Node(Key key, Element element) : key(key), element(element), backLink(nullptr), down(nullptr), towerRoot(this),
+                                     up(nullptr) {}
+
+    // one node in tower
+    Node(Key key, Node *down, Node *towerRoot) : key(key), element(0), backLink(nullptr), down(down),
+                                                 towerRoot(towerRoot), up(nullptr) {}
+
+    // Node in head or tail
+    Node(Key key, Node *up) : key(key), element(0), backLink(nullptr), down(nullptr),
+                              towerRoot(nullptr), up(up) {}
+
+    // TOP Node in Head and Tail -> points with its up pointer to itself
+    explicit Node(Key key) : key(key), element(0), backLink(nullptr), down(nullptr),
+                             towerRoot(nullptr), up(this) {}
 
     // Key
     Key key;
@@ -40,12 +57,18 @@ private:
     // Pointer to the previous Node
     Node *backLink;
     // Stores next node (right), and if node is marked OR flagged
-    Successor successor;
+    // TODO pointer or not?
+    std::atomic<Successor> successor;
     // A pointer to the node below, or null if root node (lowest level)
     Node *down;
     // A pointer to the root of the tower. Root Nodes will reference themselves.
     Node *towerRoot;
+
+    // ONLY FOR HEAD-NODES
+    // A points to the node above in tower or on itself if top of tower
+    Node *up;
 };
+
 
 /**
  * Main skip list class as described my Mikhail Fomitchev and Eric Ruppert in "Lock-Free Linked Lists and Skip Lists",
@@ -119,17 +142,21 @@ private:
     std::tuple<Node *, bool, bool> tryFlagNode(Node *prevNode, Node *targetNode);
 
     // attempts to insert node newNode into the list. Nodes prevNode and nextNode specify the position where insertNode will attempt to insert newNode
-    Node* insertNode(Node* newNode, Node* prevNode, Node* nextNode);
+    std::pair<Node *, Node *> insertNode(Node *newNode, Node *prevNode, Node *nextNode);
 
     // atempts to delete node delNode
-    Node* deleteNode(Node* prevNode, Node* delNode);
+    Node *deleteNode(Node *prevNode, Node *delNode);
 
     // attempts to physically delete the marked node delNode
-    void helpMarked(Node* prevNode, Node* delNode);
+    void helpMarked(Node *prevNode, Node *delNode);
 
     // attempts to mark and physcially delete the successor of the flagged node prevNode
-    void helpFlagged(Node* prevNode, Node* delNode);
+    void helpFlagged(Node *prevNode, Node *delNode);
 
     // attempts to mark the node delNode
-    void tryMark(Node* delNode);
+    void tryMark(Node *delNode);
+
+
+    // TODO head with height construction
+    Node *head;
 };
