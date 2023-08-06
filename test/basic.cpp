@@ -98,7 +98,22 @@ TEST(SingleThreadedSkipListTest, SimpleInsertAndFind) {
   ASSERT_TRUE(sl.insert(42, 100));
   std::optional<Element> element = sl.find(42);
   matches_element(element, 100);
+  sl.print();
 }
+
+TEST(SingleThreadedSkipListTest, InsertAndFindSimpleOwn) {
+    const int num_entries = 10;
+    SkipList sl{};
+
+    for (Key key = 0; key < num_entries; ++key) {
+        ASSERT_TRUE(sl.insert(key, key * 10));
+    }
+    sl.print();
+
+    std::optional<Element> element = sl.find(0);
+    matches_element(element, 0);
+}
+
 
 TEST(SingleThreadedSkipListTest, InsertAndFind) {
   const int num_entries = 10;
@@ -112,6 +127,20 @@ TEST(SingleThreadedSkipListTest, InsertAndFind) {
     std::optional<Element> element = sl.find(key);
     matches_element(element, key * 10);
   }
+}
+
+TEST(SingleThreadedSkipListTest, InsertAndFindReverse) {
+    const int num_entries = 10;
+    SkipList sl{};
+
+    for (Key key = num_entries; key > 0; --key) {
+        ASSERT_TRUE(sl.insert(key, key * 10));
+    }
+
+    for (Key key = num_entries; key > 0; --key) {
+        std::optional<Element> element = sl.find(key);
+        matches_element(element, key * 10);
+    }
 }
 
 // Special test to check if your iterator interface is implemented correctly. We rely on this in the advanced tests, so

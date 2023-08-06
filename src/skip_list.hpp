@@ -159,6 +159,8 @@ public:
 
     Iterator end() const;
 
+    void print();
+
 private:
     // TODO: Add members and helper methods here.
     //       If you need a variable that each thread needs it's own copy of, have a look at thread_local variables. Note

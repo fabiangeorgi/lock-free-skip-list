@@ -1,8 +1,10 @@
 #include "skip_list.hpp"
 
 #include <optional>
+#include <iostream>
 
 SkipList::SkipList() {
+    // TODO REFACTOR THIS -> MY HEAD IS HURTING RIGHT NOW D:
     Node *topHead = new Node(MIN_KEY);
     Node *topTail = new Node(MAX_KEY);
     topHead->successor.store({topTail, false, false});
@@ -11,7 +13,6 @@ SkipList::SkipList() {
     auto previousTail = topTail;
     for (int i = 0;
          i < MAX_LEVEL - 1; i++) { // create for the whole length // -1 because we created the top nodes already
-        // TODO cleanup
         Node *head = new Node(MIN_KEY, previousHead);
         Node *tail = new Node(MAX_KEY, previousTail);
         head->successor.store({tail, false, false});
@@ -19,6 +20,26 @@ SkipList::SkipList() {
         previousTail = tail;
     }
     head = previousHead; // head is root head node
+
+    // set down path
+    auto iterator = head;
+    // TODO check if they reference themselves or nullptr if root node (probably does not matter, since we are using levels and don't call down on level 1)
+    auto previousIterator = head;
+    // for head
+    iterator->down = previousIterator;
+    // for tail
+    iterator->successor.load().right()->down = previousIterator->successor.load().right()->down;
+
+    iterator = iterator->up;
+    for (int i = 0; i < MAX_LEVEL - 1; i++) {
+        // for head
+        iterator->down = previousIterator;
+        // for tail
+        iterator->successor.load().right()->down = previousIterator->successor.load().right()->down;
+        // iterate up
+        iterator = iterator->up;
+        previousIterator = previousIterator->up;
+    }
 }
 
 bool SkipList::insert(Key key, Element element) {
@@ -272,4 +293,24 @@ void SkipList::tryMark(Node *delNode) {
             helpFlagged(delNode, delNode->successor.load().right());
         }
     } while (delNode->successor.load().marked() == true);
+}
+
+void SkipList::print() {
+    auto headIterator = head;
+
+    while (headIterator->up != headIterator) {
+        auto listIterator = headIterator->successor.load().right();
+        if (listIterator->key == MAX_KEY) {
+            std::cout << std::endl;
+            break; // don't show empty trees
+        }
+        std::cout << "HEAD => ";
+        while (listIterator->key != MAX_KEY) {
+            std::cout << listIterator->key << " => ";
+            listIterator = listIterator->successor.load().right();
+        }
+        std::cout << "END" << std::endl;
+        headIterator = headIterator->up;
+    }
+    std::cout << std::endl;
 }
