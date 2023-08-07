@@ -149,7 +149,6 @@ public:
     // This says that the value type of a SkipList iterator is an `Entry`.
     using value_type = Entry;
 
-
     // TODO: Change this to the type of your custom iterator.
     //       We only use std::vector here as a placeholder to compile.
     //       Check for details on how to implement an iterator:
