@@ -143,6 +143,29 @@ TEST(SingleThreadedSkipListTest, InsertAndFindReverse) {
     }
 }
 
+TEST(SingleThreadedSkipListTest, DeleteAll) {
+    const int num_entries = 10;
+    SkipList sl{};
+
+    for (Key key = 0; key < num_entries; ++key) {
+        ASSERT_TRUE(sl.insert(key, key * 10));
+    }
+
+    for (Key key = 0; key < num_entries; ++key) {
+        std::optional<Element> element = sl.remove(key);
+        matches_element(element, key * 10);
+    }
+
+    for (Key key = num_entries; key >= 0; --key) {
+        ASSERT_TRUE(sl.insert(key, key * 10));
+    }
+
+    for (Key key = num_entries; key >= 0; --key) {
+        std::optional<Element> element = sl.remove(key);
+        matches_element(element, key * 10);
+    }
+}
+
 // Special test to check if your iterator interface is implemented correctly. We rely on this in the advanced tests, so
 // we make sure that it works here.
 TEST(SingleThreadedSkipListTest, IteratorInterface) {

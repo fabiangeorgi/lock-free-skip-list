@@ -185,18 +185,18 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
         }
         Successor oldSuccessor = {targetNode, false, false};
         Successor newSuccessor = {targetNode, false, true};
-        auto result = prevNode->successor.compare_exchange_weak(oldSuccessor, newSuccessor, std::memory_order_release,
-                                                                std::memory_order_relaxed);
+        auto result = CAS(prevNode->successor, oldSuccessor, newSuccessor);
 
-        if (result == true) { // if compare and swap was successful
+        if (result == newSuccessor) { // if compare and swap was successful
             return std::make_tuple(prevNode, true, true);
         }
         // compare and swap was not successful -> handle error
         // get new value of node and check if flagged
-        auto currentSuccessor = prevNode->successor.load();
-        if (currentSuccessor == isPredecessorFlagged) {
-            return std::make_tuple(prevNode, true, false);
-        }
+        // TODO don't need this -> as return value is not used
+//        auto currentSuccessor = prevNode->successor.load();
+//        if (currentSuccessor == isPredecessorFlagged) {
+//            return std::make_tuple(prevNode, true, false);
+//        }
         while (prevNode->successor.load().marked()) { // possibly failure due to marking -> use back_links
             prevNode = prevNode->backLink;
         }
@@ -222,18 +222,16 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
             helpFlagged(prevNode, prevSuccessor.right());
         } else {
             // TODO don't think that works
-            newNode->successor = {nextNode, false, false};
-            Successor prevNodeSuccessor = {nextNode, false, false};
-            auto result = prevNode->successor.compare_exchange_weak(prevNodeSuccessor, {newNode, false, false},
-                                                                    std::memory_order_release,
-                                                                    std::memory_order_relaxed);
+            newNode->successor.store({nextNode, false, false});
+            Successor newSuccessor = {newNode, false, false};
+            auto result = CAS(prevNode->successor, {nextNode, false, false}, {newNode, false, false});
 
-            if (result == true) {
+            if (result == newSuccessor) {
                 return std::make_pair(prevNode, newNode);
             } else {
-                auto successorValue = prevNode->successor.load();
-                if (successorValue.flagged() == true) {
-                    helpFlagged(prevNode, successorValue.right());
+
+                if (result.flagged() == true) {
+                    helpFlagged(prevNode, result.right());
                 }
                 while (prevNode->successor.load().marked() == true) {
                     prevNode = prevNode->backLink;
@@ -268,10 +266,7 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
 
 void SkipList::helpMarked(Node *prevNode, Node *delNode) {
     auto nextNode = delNode->successor.load().right();
-
-    Successor oldValue = {delNode, false, true};
-    Successor newValue = {nextNode, false, false};
-    prevNode->successor.compare_exchange_weak(oldValue, newValue, std::memory_order_release, std::memory_order_relaxed);
+    CAS(prevNode->successor, {delNode, false, true}, {nextNode, false, false});
 }
 
 void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
@@ -285,14 +280,10 @@ void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
 void SkipList::tryMark(Node *delNode) {
     do {
         auto nextNode = delNode->successor.load().right();
+        auto result = CAS(delNode->successor, {nextNode, false, false}, {nextNode, true, false});
 
-        Successor previous = {nextNode, false, false};
-        Successor newValues = {nextNode, true, false};
-        delNode->successor.compare_exchange_weak(previous, newValues, std::memory_order_release,
-                                                 std::memory_order_relaxed);
-
-        if (delNode->successor.load().flagged() == true) {
-            helpFlagged(delNode, delNode->successor.load().right());
+        if (result.flagged() == true) {
+            helpFlagged(delNode, result.right());
         }
     } while (delNode->successor.load().marked() != true);
 }

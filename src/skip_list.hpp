@@ -221,6 +221,13 @@ private:
     // attempts to mark the node delNode
     void tryMark(Node *delNode);
 
+    Successor CAS(std::atomic<Successor>& address, Successor old, Successor newValue) {
+        if (address.compare_exchange_weak(old, newValue)) {
+            return newValue;
+        }
+        return address;
+    }
+
     Node *head;
 
     Node *tail;
