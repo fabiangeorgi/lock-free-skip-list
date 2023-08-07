@@ -71,12 +71,11 @@ bool SkipList::insert(Key key, Element element) {
         prevNode = prevNodeResultPair.first;
         auto result = prevNodeResultPair.second;
         if (result == nullptr && currV == 1) {
-            // TODO might delete/free newRNode
             // key is already in list -> DUPLICATE_KEYS
             return false;
         }
         // check if tower became superfluous
-        if (newRNode->successor.load().marked() == true) {
+        if (newRNode->successor.load().marked()) {
             if (result == newNode && newNode != newRNode) {
                 deleteNode(prevNode, newNode);
             }
@@ -162,8 +161,8 @@ std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
     bool _result; // don't need it
 
     while (nextNode->key <= k) {
-        // NOTE: ADDED nextNode->towerRoot != nullptr, because otherwise we get a nullptr for the tail node, which does not have a successor
-        while (nextNode->towerRoot->successor.load().marked() == true) {
+        // NOTE: ADDED towerRoot pointers for tail nodes, because otherwise we get a nullptr for the tail node, which does not have a successor
+        while (nextNode->towerRoot->successor.load().marked()) {
             std::tie(currNode, status, _result) = tryFlagNode(currNode, nextNode);
             if (status == true) { // INSERTED
                 helpFlagged(currNode, nextNode);
@@ -217,22 +216,20 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
     }
     while (true) {
         auto prevSuccessor = prevNode->successor.load();
-        if (prevSuccessor.flagged() == true) {
+        if (prevSuccessor.flagged()) {
             helpFlagged(prevNode, prevSuccessor.right());
         } else {
-            // TODO don't think that works
-            newNode->successor.store({nextNode, false, false});
+            newNode->successor = {nextNode, false, false};
             Successor newSuccessor = {newNode, false, false};
-            auto result = CAS(prevNode->successor, {nextNode, false, false}, {newNode, false, false});
+            auto result = CAS(prevNode->successor, {nextNode, false, false}, newSuccessor);
 
             if (result == newSuccessor) {
                 return std::make_pair(prevNode, newNode);
             } else {
-
-                if (result.flagged() == true) {
+                if (result.flagged()) {
                     helpFlagged(prevNode, result.right());
                 }
-                while (prevNode->successor.load().marked() == true) {
+                while (prevNode->successor.load().marked()) {
                     prevNode = prevNode->backLink;
                 }
             }
@@ -253,7 +250,7 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
     bool status = std::get<1>(pair);
     bool result = std::get<2>(pair);
 
-    if (status == true) {
+    if (status) {
         helpFlagged(prevNode, delNode);
     }
     if (result == false) {
@@ -281,7 +278,7 @@ void SkipList::tryMark(Node *delNode) {
         auto nextNode = delNode->successor.load().right();
         auto result = CAS(delNode->successor, {nextNode, false, false}, {nextNode, true, false});
 
-        if (result.flagged() == true) {
+        if (result.flagged()) {
             helpFlagged(delNode, result.right());
         }
     } while (delNode->successor.load().marked() != true);
