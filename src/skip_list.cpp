@@ -223,7 +223,7 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
         } else {
             // TODO don't think that works
             newNode->successor = {nextNode, false, false};
-            auto prevNodeSuccessor = prevNode->successor.load();
+            Successor prevNodeSuccessor = {nextNode, false, false};
             auto result = prevNode->successor.compare_exchange_weak(prevNodeSuccessor, {newNode, false, false},
                                                                     std::memory_order_release,
                                                                     std::memory_order_relaxed);
