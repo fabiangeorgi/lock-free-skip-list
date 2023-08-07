@@ -301,6 +301,75 @@ TEST(MultiThreadedSkipListTest, InsertAndFind) {
   }
 }
 
+TEST(MultiThreadedSkipListTest, InsertFindAndRemoveAll) {
+    const int num_entries = 10000;
+    const int num_threads = 8;
+
+    SkipList sl{};
+
+    std::array<bool, 2> no_crash_insert{};
+    std::barrier start_threads_insert{2};
+    auto insert_fn = [&](int id) {
+        start_threads_insert.arrive_and_wait();  // Wait for all threads to be ready.
+        for (Key key = id; key < num_entries; key += 2) {
+            sl.insert(key, key);
+        }
+        no_crash_insert[id] = true;
+    };
+
+    std::thread t0_insert{insert_fn, 0};
+    std::thread t1_insert{insert_fn, 1};
+
+    t0_insert.join();
+    t1_insert.join();
+
+    for (bool crash : no_crash_insert) {
+        ASSERT_TRUE(crash) << "A thread crashed during this test.";
+    }
+
+    for (Key key = 0; key < num_entries; ++key) {
+        std::optional<Element> element = sl.find(key);
+        ASSERT_TRUE(element.has_value());
+    }
+
+    std::array<bool, 2> no_crash{};
+    std::barrier start_threads{num_threads};
+    auto remove_fn = [&](int id) {
+        start_threads.arrive_and_wait();  // Wait for all threads to be ready.
+        for (Key key = id; key < num_entries; key += num_threads) {
+            sl.remove(key);
+        }
+        no_crash[id] = true;
+    };
+
+    std::thread t0{remove_fn, 0};
+    std::thread t1{remove_fn, 1};
+    std::thread t2{remove_fn, 2};
+    std::thread t3{remove_fn, 3};
+    std::thread t4{remove_fn, 4};
+    std::thread t5{remove_fn, 5};
+    std::thread t6{remove_fn, 6};
+    std::thread t7{remove_fn, 7};
+
+    t0.join();
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+    t5.join();
+    t6.join();
+    t7.join();
+
+    for (bool crash : no_crash) {
+        ASSERT_TRUE(crash) << "A thread crashed during this test.";
+    }
+
+    for (Key key = 0; key < num_entries; ++key) {
+        std::optional<Element> element = sl.remove(key);
+        ASSERT_FALSE(element.has_value());
+    }
+}
+
 TEST(MultiThreadedSkipListTest, InsertRemoveFind) {
   const int num_entries = 1000;
   const int num_threads = 2;
