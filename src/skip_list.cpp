@@ -20,6 +20,7 @@ SkipList::SkipList() {
         previousTail = tail;
     }
     head = previousHead; // head is root head node
+    tail = previousTail;
 
     // set down path
     auto iterator = head;
@@ -121,9 +122,9 @@ std::optional<Element> SkipList::remove(Key key) {
     return delNode->element;
 }
 
-SkipList::Iterator SkipList::begin() const { return {}; }
+SkipList::Iterator SkipList::begin() const { return Iterator(head->successor.load().right()); }
 
-SkipList::Iterator SkipList::end() const { return {}; }
+SkipList::Iterator SkipList::end() const { return Iterator(tail); }
 
 std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
     // we declare here to unroll in while loop directly
@@ -287,7 +288,8 @@ void SkipList::tryMark(Node *delNode) {
 
         Successor previous = {nextNode, false, false};
         Successor newValues = {nextNode, true, false};
-        delNode->successor.compare_exchange_weak(previous, newValues, std::memory_order_release, std::memory_order_relaxed);
+        delNode->successor.compare_exchange_weak(previous, newValues, std::memory_order_release,
+                                                 std::memory_order_relaxed);
 
         if (delNode->successor.load().flagged() == true) {
             helpFlagged(delNode, delNode->successor.load().right());

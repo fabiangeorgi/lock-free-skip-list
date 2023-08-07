@@ -75,7 +75,7 @@ private:
 struct Node {
     // constructs a root node
     Node(Key key, Element element) : key(key), element(element), backLink(nullptr), down(nullptr), towerRoot(this),
-                                     up(nullptr) {}
+                                     up(nullptr), iteratorValue({key, element}) {}
 
     // one node in tower
     Node(Key key, Node *down, Node *towerRoot) : key(key), element(0), backLink(nullptr), down(down),
@@ -102,6 +102,9 @@ struct Node {
     Node *down;
     // A pointer to the root of the tower. Root Nodes will reference themselves.
     Node *towerRoot;
+
+    // TODO maybe combine this -> but no idea how else I will achieve the iterator
+    std::pair<Key, Element> iteratorValue;
 
     // ONLY FOR HEAD-NODES
     // A points to the node above in tower or on itself if top of tower
@@ -147,6 +150,7 @@ public:
     // This says that the value type of a SkipList iterator is an `Entry`.
     using value_type = Entry;
 
+
     // TODO: Change this to the type of your custom iterator.
     //       We only use std::vector here as a placeholder to compile.
     //       Check for details on how to implement an iterator:
@@ -154,7 +158,27 @@ public:
     //         - https://en.cppreference.com/w/cpp/named_req/ForwardIterator
     //         - https://en.cppreference.com/w/cpp/iterator/iterator_traits
     //       Note: We only require a ForwardIterator.
-    using Iterator = std::vector<Entry>::iterator;
+    struct SkipListIterator {
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = SkipList::Entry;
+        using pointer           = SkipList::Entry*;
+        using reference         = SkipList::Entry&;
+
+        SkipListIterator(Node* ptr) : m_ptr(ptr) {}
+
+        reference operator*() const { return m_ptr->iteratorValue; }
+        pointer operator->() { return &m_ptr->iteratorValue; }
+        SkipListIterator& operator++() { m_ptr = m_ptr->successor.load().right(); return *this; }
+        SkipListIterator operator++(int) { SkipListIterator tmp = *this; ++(*this); return tmp; }
+        friend bool operator== (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr == b.m_ptr; };
+        friend bool operator!= (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr != b.m_ptr; };
+
+    private:
+        Node* m_ptr;
+    };
+
+    using Iterator = SkipListIterator;
 
     /// Begin and end iterators for the skip list to allow iterating over all entries.
     Iterator begin() const;
@@ -191,13 +215,13 @@ private:
     // attempts to physically delete the marked node delNode
     void helpMarked(Node *prevNode, Node *delNode);
 
-    // attempts to mark and physcially delete the successor of the flagged node prevNode
+    // attempts to mark and physically delete the successor of the flagged node prevNode
     void helpFlagged(Node *prevNode, Node *delNode);
 
     // attempts to mark the node delNode
     void tryMark(Node *delNode);
 
-
-    // TODO head with height construction
     Node *head;
+
+    Node *tail;
 };
