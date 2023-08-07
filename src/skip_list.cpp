@@ -186,15 +186,15 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
         Successor oldSuccessor = {targetNode, false, false};
         auto result = CAS(prevNode->successor, oldSuccessor, flaggedPredecessor);
 
-        if (result == oldSuccessor) { // if compare and swap was successful
+        if (result == flaggedPredecessor) { // if compare and swap was successful
             return std::make_tuple(prevNode, true, true);
         }
         // compare and swap was not successful -> handle error
         // get new value of node and check if flagged
-        auto currentSuccessor = prevNode->successor.load();
-        if (currentSuccessor == flaggedPredecessor) {
-            return std::make_tuple(prevNode, true, false);
-        }
+//        auto currentSuccessor = prevNode->successor.load();
+//        if (currentSuccessor == flaggedPredecessor) {
+//            return std::make_tuple(prevNode, true, false);
+//        }
         while (prevNode->successor.load().marked()) { // possibly failure due to marking -> use back_links
             prevNode = prevNode->backLink;
         }
