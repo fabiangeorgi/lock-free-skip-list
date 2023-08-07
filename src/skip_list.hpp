@@ -94,7 +94,7 @@ struct Node {
     // Value
     Element element;
     // Pointer to the previous Node
-    std::atomic<Node *> backLink;
+    Node* backLink;
     // Stores next node (right), and if node is marked OR flagged
     std::atomic<Successor> successor;
     // A pointer to the node below, or null if root node (lowest level)

@@ -179,24 +179,22 @@ std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
 
 std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targetNode) {
     while (true) {
-        Successor isPredecessorFlagged = {targetNode, false, true};
-        if (prevNode->successor.load() == isPredecessorFlagged) {
+        Successor flaggedPredecessor = {targetNode, false, true};
+        if (prevNode->successor.load() == flaggedPredecessor) {
             return std::make_tuple(prevNode, true, false);
         }
         Successor oldSuccessor = {targetNode, false, false};
-        Successor newSuccessor = {targetNode, false, true};
-        auto result = CAS(prevNode->successor, oldSuccessor, newSuccessor);
+        auto result = CAS(prevNode->successor, oldSuccessor, flaggedPredecessor);
 
-        if (result == newSuccessor) { // if compare and swap was successful
+        if (result == oldSuccessor) { // if compare and swap was successful
             return std::make_tuple(prevNode, true, true);
         }
         // compare and swap was not successful -> handle error
         // get new value of node and check if flagged
-        // TODO don't need this -> as return value is not used
-//        auto currentSuccessor = prevNode->successor.load();
-//        if (currentSuccessor == isPredecessorFlagged) {
-//            return std::make_tuple(prevNode, true, false);
-//        }
+        auto currentSuccessor = prevNode->successor.load();
+        if (currentSuccessor == flaggedPredecessor) {
+            return std::make_tuple(prevNode, true, false);
+        }
         while (prevNode->successor.load().marked()) { // possibly failure due to marking -> use back_links
             prevNode = prevNode->backLink;
         }
