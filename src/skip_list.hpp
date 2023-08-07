@@ -16,11 +16,10 @@ constexpr Key MAX_KEY = std::numeric_limits<Key>::max();
 
 // Maximum of 10 Million keys will be inserted -> can calculate tower height
 constexpr uint64_t MAX_NUMBER_OF_KEYS = 10000000;
-// probability of creating a new layer/node in tower
-constexpr float PROBABILITY_CREATING_NODE = 0.5;
 // maxLevel of the tower -> log_(1/p)_(N) -> all not head or tail towers will be strictly smaller
+// because p=0.5, -> log2(M)
 // TODO constexpr does not work with log operations -> find a fix
-const uint64_t MAX_LEVEL = log2(MAX_NUMBER_OF_KEYS) / log2(1 / PROBABILITY_CREATING_NODE);
+const uint64_t MAX_LEVEL = log2(MAX_NUMBER_OF_KEYS);
 
 // forward declare
 struct Node;

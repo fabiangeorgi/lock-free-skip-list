@@ -35,8 +35,10 @@ SkipList::SkipList() {
     for (int i = 0; i < MAX_LEVEL - 1; i++) {
         // for head
         iterator->down = previousIterator;
+        iterator->towerRoot = head;
         // for tail
         iterator->successor.load().right()->down = previousIterator->successor.load().right()->down;
+        iterator->successor.load().right()->towerRoot = tail;
         // iterate up
         iterator = iterator->up;
         previousIterator = previousIterator->up;
@@ -135,7 +137,6 @@ std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
     std::tie(currNode, currV) = findStart(v);
     while (currV > v) {
         std::tie(currNode, nextNode) = searchRight(k, currNode);
-        // TODO currNode down is not defined
         currNode = currNode->down;
         currV--;
     }
@@ -162,7 +163,7 @@ std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
 
     while (nextNode->key <= k) {
         // NOTE: ADDED nextNode->towerRoot != nullptr, because otherwise we get a nullptr for the tail node, which does not have a successor
-        while (nextNode->towerRoot != nullptr && nextNode->towerRoot->successor.load().marked() == true) {
+        while (nextNode->towerRoot->successor.load().marked() == true) {
             std::tie(currNode, status, _result) = tryFlagNode(currNode, nextNode);
             if (status == true) { // INSERTED
                 helpFlagged(currNode, nextNode);
