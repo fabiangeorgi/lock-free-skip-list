@@ -94,7 +94,7 @@ struct Node {
     // Value
     Element element;
     // Pointer to the previous Node
-    Node *backLink;
+    std::atomic<Node *> backLink;
     // Stores next node (right), and if node is marked OR flagged
     // TODO pointer or not?
     std::atomic<Successor> successor;

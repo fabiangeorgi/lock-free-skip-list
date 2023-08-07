@@ -198,7 +198,7 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
 //            return std::make_tuple(prevNode, true, false);
 //        }
         while (prevNode->successor.load().marked()) { // possibly failure due to marking -> use back_links
-            prevNode = prevNode->backLink;
+            prevNode = prevNode->backLink.load();
         }
         // TODO don't know if we can just decrease by one (epsilon), but theoretically should be fine
         auto returnPair = searchRight(targetNode->key - 1, prevNode);
@@ -234,7 +234,7 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
                     helpFlagged(prevNode, result.right());
                 }
                 while (prevNode->successor.load().marked() == true) {
-                    prevNode = prevNode->backLink;
+                    prevNode = prevNode->backLink.load();
                 }
             }
         }
@@ -270,7 +270,7 @@ void SkipList::helpMarked(Node *prevNode, Node *delNode) {
 }
 
 void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
-    delNode->backLink = prevNode;
+    delNode->backLink.store(prevNode);
     if (delNode->successor.load().marked() == false) {
         tryMark(delNode);
     }
