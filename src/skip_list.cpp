@@ -5,7 +5,6 @@
 
 SkipList::SkipList() {
     head = new Node(MIN_KEY, 0);
-    head->up = head;
     tail = new Node(MAX_KEY, 0);
 
     head->successor.store({tail, false, false});
@@ -24,6 +23,7 @@ SkipList::SkipList() {
         iteratorHead = headNode;
         iteratorTail = tailNode;
     }
+    iteratorHead->up = iteratorHead;
 }
 
 bool SkipList::insert(Key key, Element element) {
