@@ -24,6 +24,7 @@ SkipList::SkipList() {
         iteratorTail = tailNode;
     }
     iteratorHead->up = iteratorHead;
+    iteratorTail->up = iteratorTail;
 }
 
 bool SkipList::insert(Key key, Element element) {
