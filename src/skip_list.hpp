@@ -71,7 +71,7 @@ private:
     static const uint64_t pointerMask = ~comparisonMask;
 };
 
-struct Node {
+struct alignas(8) Node {
     // constructs a root node
     Node(Key key, Element element) : key(key), element(element), backLink(nullptr), down(nullptr), towerRoot(this),
                                      up(nullptr), iteratorValue({key, element}) {
