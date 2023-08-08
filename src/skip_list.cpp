@@ -23,8 +23,8 @@ SkipList::SkipList() {
         iteratorHead = headNode;
         iteratorTail = tailNode;
     }
-    iteratorHead->up = iteratorHead;
-    iteratorTail->up = iteratorTail;
+    // In the paper it states that top head should reference itself with up, but is not needed
+    // iteratorHead->up = iteratorHead;
 }
 
 bool SkipList::insert(Key key, Element element) {
