@@ -15,7 +15,7 @@ constexpr Key MIN_KEY = std::numeric_limits<Key>::min();
 constexpr Key MAX_KEY = std::numeric_limits<Key>::max();
 
 // Maximum of 10 Million keys will be inserted -> can calculate tower height
-constexpr uint64_t MAX_NUMBER_OF_KEYS = 10000000;
+constexpr uint64_t MAX_NUMBER_OF_KEYS = 8000000;
 // maxLevel of the tower -> log_(1/p)_(N) -> all not head or tail towers will be strictly smaller
 // because p=0.5, -> log2(M)
 // TODO constexpr does not work with log operations -> find a fix
@@ -74,7 +74,10 @@ private:
 struct Node {
     // constructs a root node
     Node(Key key, Element element) : key(key), element(element), backLink(nullptr), down(nullptr), towerRoot(this),
-                                     up(nullptr), iteratorValue({key, element}) {}
+                                     up(nullptr), iteratorValue({key, element}) {
+        // TODO check if this works
+//        towerRoot = this;
+    }
 
     // one node in tower
     Node(Key key, Node *down, Node *towerRoot) : key(key), element(0), backLink(nullptr), down(down),
@@ -87,6 +90,7 @@ struct Node {
     // TOP Node in Head and Tail -> points with its up pointer to itself
     explicit Node(Key key) : key(key), element(0), backLink(nullptr), down(nullptr),
                              towerRoot(nullptr), up(this) {}
+                             // TODO up to nullptr
 
     // Key
     Key key;

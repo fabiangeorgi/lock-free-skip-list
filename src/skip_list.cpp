@@ -28,6 +28,7 @@ SkipList::SkipList() {
     auto previousIterator = head;
     // for head
     iterator->down = previousIterator;
+    // TODO head down nullptr
     // for tail
     iterator->successor.load().right()->down = previousIterator->successor.load().right()->down;
 
@@ -46,9 +47,9 @@ SkipList::SkipList() {
 }
 
 bool SkipList::insert(Key key, Element element) {
-    auto pair = searchToLevel(key, 1);
-    auto prevNode = pair.first;
-    auto nextNode = pair.second;
+    Node *prevNode;
+    Node *nextNode;
+    std::tie(prevNode, nextNode) = searchToLevel(key, 1);
 
     if (prevNode->key == key) {
         // key is already in list -> DUPLICATE_KEYS
@@ -67,9 +68,9 @@ bool SkipList::insert(Key key, Element element) {
     // the level at which newNode will be inserted
     uint64_t currV = 1;
     while (true) {
-        auto prevNodeResultPair = insertNode(newNode, prevNode, nextNode);
-        prevNode = prevNodeResultPair.first;
-        auto result = prevNodeResultPair.second;
+        Node *result;
+        std::tie(prevNode, result) = insertNode(newNode, prevNode, nextNode);
+
         if (result == nullptr && currV == 1) {
             // key is already in list -> DUPLICATE_KEYS
             return false;
@@ -88,16 +89,14 @@ bool SkipList::insert(Key key, Element element) {
         auto lastNode = newNode;
         newNode = new Node(key, lastNode, newRNode);
 
-        auto returnPair = searchToLevel(key, currV);
-        prevNode = returnPair.first;
-        nextNode = returnPair.second;
+        std::tie(prevNode, nextNode) = searchToLevel(key, currV);
     }
 }
 
 std::optional<Element> SkipList::find(Key key) {
-    auto pair = searchToLevel(key, 1);
-    auto currNode = pair.first;
-    auto nextNode = pair.second;
+    Node *currNode;
+    Node *nextNode;
+    std::tie(currNode, nextNode) = searchToLevel(key, 1);
 
     if (currNode->key == key) {
         return currNode->element;
@@ -107,15 +106,14 @@ std::optional<Element> SkipList::find(Key key) {
 }
 
 std::optional<Element> SkipList::remove(Key key) {
-    // TODO don't know if we can just use epsilon = 1 here
-    auto pair = searchToLevel(key - 1, 1);
-    auto prevNode = pair.first;
-    auto delNode = pair.second;
+    Node *prevNode;
+    Node *delNode;
+    std::tie(prevNode, delNode) = searchToLevel(key - 1, 1);
 
     if (delNode->key != key) {
         return {}; // NO SUCH KEY
     }
-    auto result = deleteNode(prevNode, delNode);
+    Node *result = deleteNode(prevNode, delNode);
     if (result == nullptr) {
         return {}; // NO SUCH KEY
     }
@@ -129,24 +127,25 @@ SkipList::Iterator SkipList::end() const { return Iterator(tail); }
 
 std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
     // we declare here to unroll in while loop directly
-    Node *nextNode;
     Node *currNode;
     Level currV;
 
     std::tie(currNode, currV) = findStart(v);
     while (currV > v) {
+        Node *nextNode;
         std::tie(currNode, nextNode) = searchRight(k, currNode);
         currNode = currNode->down;
         currV--;
     }
-    std::tie(currNode, nextNode) = searchRight(k, currNode);
-    return std::make_pair(currNode, nextNode);
+    auto result = searchRight(k, currNode);
+    return result;
 }
 
 std::pair<Node *, Level> SkipList::findStart(Level v) {
     auto *currNode = head;
     Level currV = 1;
 
+    // TODO check nullptr (if up does not reference itself)
     while (currNode->up->successor.load().right()->key != MAX_KEY || currV < v) {
         currNode = currNode->up;
         currV++;
@@ -157,12 +156,13 @@ std::pair<Node *, Level> SkipList::findStart(Level v) {
 
 std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
     Node *nextNode = currNode->successor.load().right();
-    bool status;
-    bool _result; // don't need it
 
     while (nextNode->key <= k) {
         // NOTE: ADDED towerRoot pointers for tail nodes, because otherwise we get a nullptr for the tail node, which does not have a successor
         while (nextNode->towerRoot->successor.load().marked()) {
+            bool status;
+            bool _result; // don't need it
+
             std::tie(currNode, status, _result) = tryFlagNode(currNode, nextNode);
             if (status == true) { // INSERTED
                 helpFlagged(currNode, nextNode);
@@ -181,8 +181,10 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
     while (true) {
         Successor flaggedPredecessor = {targetNode, false, true};
         if (prevNode->successor.load() == flaggedPredecessor) {
+            // INSERTED = true (2nd argument)
             return std::make_tuple(prevNode, true, false);
         }
+
         Successor oldSuccessor = {targetNode, false, false};
         auto result = CAS(prevNode->successor, oldSuccessor, flaggedPredecessor);
 
@@ -196,12 +198,11 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
 //            return std::make_tuple(prevNode, true, false);
 //        }
         while (prevNode->successor.load().marked()) { // possibly failure due to marking -> use back_links
-            prevNode = prevNode->backLink;
+            prevNode = prevNode->backLink.load();
         }
-        // TODO don't know if we can just decrease by one (epsilon), but theoretically should be fine
-        auto returnPair = searchRight(targetNode->key - 1, prevNode);
-        prevNode = returnPair.first;
-        auto delNode = returnPair.second;
+        Node *delNode;
+        std::tie(prevNode, delNode) = searchRight(targetNode->key - 1, prevNode);
+
         if (delNode != targetNode) {
             return std::make_tuple(prevNode, false, false); // target node was deleted from the list
         }
@@ -215,13 +216,13 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
         return std::make_pair(prevNode, nullptr);
     }
     while (true) {
-        auto prevSuccessor = prevNode->successor.load();
-        if (prevSuccessor.flagged()) {
-            helpFlagged(prevNode, prevSuccessor.right());
+        std::atomic<Successor> &prevSuccessor = prevNode->successor;
+        if (prevSuccessor.load().flagged()) {
+            helpFlagged(prevNode, prevSuccessor.load().right());
         } else {
             newNode->successor = {nextNode, false, false};
             Successor newSuccessor = {newNode, false, false};
-            auto result = CAS(prevNode->successor, {nextNode, false, false}, newSuccessor);
+            auto result = CAS(prevSuccessor, {nextNode, false, false}, newSuccessor);
 
             if (result == newSuccessor) {
                 return std::make_pair(prevNode, newNode);
@@ -230,13 +231,13 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
                     helpFlagged(prevNode, result.right());
                 }
                 while (prevNode->successor.load().marked()) {
-                    prevNode = prevNode->backLink;
+                    prevNode = prevNode->backLink.load();
                 }
+
             }
         }
-        auto pair = searchRight(newNode->key, prevNode);
-        prevNode = pair.first;
-        nextNode = pair.second;
+
+        std::tie(prevNode, nextNode) = searchRight(newNode->key, prevNode);
 
         if (prevNode->key == newNode->key) {
             return std::make_pair(prevNode, nullptr);
@@ -245,10 +246,10 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
 }
 
 Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
-    auto pair = tryFlagNode(prevNode, delNode);
-    prevNode = std::get<0>(pair);
-    bool status = std::get<1>(pair);
-    bool result = std::get<2>(pair);
+    bool status;
+    bool result;
+
+    std::tie(prevNode, status, result) = tryFlagNode(prevNode, delNode);
 
     if (status) {
         helpFlagged(prevNode, delNode);
@@ -261,12 +262,12 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
 }
 
 void SkipList::helpMarked(Node *prevNode, Node *delNode) {
-    auto nextNode = delNode->successor.load().right();
+    Node* nextNode = delNode->successor.load().right();
     CAS(prevNode->successor, {delNode, false, true}, {nextNode, false, false});
 }
 
 void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
-    delNode->backLink = prevNode;
+    delNode->backLink.store(prevNode);
     if (delNode->successor.load().marked() == false) {
         tryMark(delNode);
     }
@@ -275,8 +276,8 @@ void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
 
 void SkipList::tryMark(Node *delNode) {
     do {
-        auto nextNode = delNode->successor.load().right();
-        auto result = CAS(delNode->successor, {nextNode, false, false}, {nextNode, true, false});
+        Node* nextNode = delNode->successor.load().right();
+        Successor result = CAS(delNode->successor, {nextNode, false, false}, {nextNode, true, false});
 
         if (result.flagged()) {
             helpFlagged(delNode, result.right());
