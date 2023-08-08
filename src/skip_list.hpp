@@ -74,10 +74,7 @@ private:
 struct alignas(8) Node {
     // constructs a root node
     Node(Key key, Element element) : key(key), element(element), backLink(nullptr), down(nullptr), towerRoot(this),
-                                     up(nullptr), iteratorValue({key, element}) {
-        // TODO check if this works
-//        towerRoot = this;
-    }
+                                     up(nullptr), iteratorValue({key, element}) {}
 
     // one node in tower
     Node(Key key, Node *down, Node *towerRoot) : key(key), element(0), backLink(nullptr), down(down),
