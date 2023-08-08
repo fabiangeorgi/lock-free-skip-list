@@ -83,15 +83,6 @@ struct alignas(8) Node {
     Node(Key key, Node *down, Node *towerRoot) : key(key), element(0), backLink(nullptr), down(down),
                                                  towerRoot(towerRoot), up(nullptr) {}
 
-    // Node in head or tail
-    Node(Key key, Node *up) : key(key), element(0), backLink(nullptr), down(nullptr),
-                              towerRoot(nullptr), up(up) {}
-
-    // TOP Node in Head and Tail -> points with its up pointer to itself
-    explicit Node(Key key) : key(key), element(0), backLink(nullptr), down(nullptr),
-                             towerRoot(nullptr), up(this) {}
-                             // TODO up to nullptr
-
     // Key
     Key key;
     // Value

@@ -70,12 +70,12 @@ TEST(SuccessorTest, Successor) {
     ASSERT_FALSE(emptySuccessor.marked());
     ASSERT_FALSE(emptySuccessor.flagged());
 
-    Successor notEmptySuccessor{new Node(1), false, false};
+    Successor notEmptySuccessor{new Node(1, 1), false, false};
 
     ASSERT_FALSE(notEmptySuccessor.marked());
     ASSERT_FALSE(notEmptySuccessor.flagged());
 
-    Node* test = new Node(10);
+    Node* test = new Node(10, 10);
     Successor markedSuccessor{test, true, false};
 
     ASSERT_TRUE(markedSuccessor.marked());

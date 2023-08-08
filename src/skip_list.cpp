@@ -4,45 +4,24 @@
 #include <iostream>
 
 SkipList::SkipList() {
-    // TODO REFACTOR THIS -> MY HEAD IS HURTING RIGHT NOW D:
-    Node *topHead = new Node(MIN_KEY);
-    Node *topTail = new Node(MAX_KEY);
-    topHead->successor.store({topTail, false, false});
+    head = new Node(MIN_KEY, 0);
+    tail = new Node(MAX_KEY, 0);
 
-    auto previousHead = topHead;
-    auto previousTail = topTail;
-    for (int i = 0;
-         i < MAX_LEVEL - 1; i++) { // create for the whole length // -1 because we created the top nodes already
-        Node *head = new Node(MIN_KEY, previousHead);
-        Node *tail = new Node(MAX_KEY, previousTail);
-        head->successor.store({tail, false, false});
-        previousHead = head;
-        previousTail = tail;
-    }
-    head = previousHead; // head is root head node
-    tail = previousTail;
+    head->successor.store({tail, false, false});
 
-    // set down path
-    auto iterator = head;
-    // TODO check if they reference themselves or nullptr if root node (probably does not matter, since we are using levels and don't call down on level 1)
-    auto previousIterator = head;
-    // for head
-    iterator->down = previousIterator;
-    // TODO head down nullptr
-    // for tail
-    iterator->successor.load().right()->down = previousIterator->successor.load().right()->down;
+    Node* iteratorHead = head;
+    Node* iteratorTail = tail;
+    for (int i = 0; i < MAX_LEVEL; i++) {
+        Node* headNode = new Node(MIN_KEY, iteratorHead, head);
+        Node* tailNode = new Node(MAX_KEY, iteratorTail, tail);
 
-    iterator = iterator->up;
-    for (int i = 0; i < MAX_LEVEL - 1; i++) {
-        // for head
-        iterator->down = previousIterator;
-        iterator->towerRoot = head;
-        // for tail
-        iterator->successor.load().right()->down = previousIterator->successor.load().right()->down;
-        iterator->successor.load().right()->towerRoot = tail;
-        // iterate up
-        iterator = iterator->up;
-        previousIterator = previousIterator->up;
+        headNode->successor.store({tailNode, false, false});
+
+        iteratorHead->up = headNode;
+        iteratorTail->up = tailNode;
+
+        iteratorHead = headNode;
+        iteratorTail = tailNode;
     }
 }
 
