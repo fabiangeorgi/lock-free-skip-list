@@ -19,7 +19,8 @@ constexpr uint64_t MAX_NUMBER_OF_KEYS = 8000000;
 // maxLevel of the tower -> log_(1/p)_(N) -> all not head or tail towers will be strictly smaller
 // because p=0.5, -> log2(M)
 // TODO constexpr does not work with log operations -> find a fix
-const uint64_t MAX_LEVEL = log2(MAX_NUMBER_OF_KEYS);
+// log2(MAX_NUMBER_OF_KEYS)
+constexpr uint64_t MAX_LEVEL = 22;
 
 // forward declare
 struct Node;
@@ -58,32 +59,26 @@ private:
     // so need to do pointer tagging
 
     // x10
-    static const uint64_t markedBits = uint64_t(2);
+    static constexpr uint64_t markedBits = uint64_t(2);
     // x01
-    static const uint64_t flaggedBits = uint64_t(1);
-
-    static const uint8_t NUMBER_OF_BITS_FOR_TAGGING = 2;
+    static constexpr uint64_t flaggedBits = uint64_t(1);
 
     // 3 = x11
-    static const uint64_t comparisonMask = uint64_t(3);
+    static constexpr uint64_t comparisonMask = uint64_t(3);
 
     // we need this to get the address of our node, regardless if its marked or flagged -> so we just zero it out
-    static const uint64_t pointerMask = ~comparisonMask;
+    static constexpr uint64_t pointerMask = ~comparisonMask;
 };
 
 struct alignas(8) Node {
     // constructs a root node
-    Node(Key key, Element element) : key(key), element(element), backLink(nullptr), down(nullptr), towerRoot(this),
-                                     up(nullptr), iteratorValue({key, element}) {}
+    Node(Key key, Element element) : entry(std::make_pair(key, element)), backLink(nullptr), down(nullptr), towerRoot(this),
+                                     up(nullptr) {}
 
     // one node in tower
-    Node(Key key, Node *down, Node *towerRoot) : key(key), element(0), backLink(nullptr), down(down),
+    Node(Key key, Node *down, Node *towerRoot) : entry(std::make_pair(key, 0)), backLink(nullptr), down(down),
                                                  towerRoot(towerRoot), up(nullptr) {}
 
-    // Key
-    Key key;
-    // Value
-    Element element;
     // Pointer to the previous Node
     std::atomic<Node*> backLink;
     // Stores next node (right), and if node is marked OR flagged
@@ -93,12 +88,19 @@ struct alignas(8) Node {
     // A pointer to the root of the tower. Root Nodes will reference themselves.
     Node *towerRoot;
 
-    // TODO maybe combine this -> but no idea how else I will achieve the iterator
-    std::pair<Key, Element> iteratorValue;
+    std::pair<Key, Element> entry;
 
     // ONLY FOR HEAD-NODES
     // A points to the node above in tower or on itself if top of tower
     Node *up;
+
+    Key key() const {
+        return entry.first;
+    }
+
+    Element element() const {
+        return entry.second;
+    }
 };
 
 
@@ -156,8 +158,8 @@ public:
 
         SkipListIterator(Node* ptr) : m_ptr(ptr) {}
 
-        reference operator*() const { return m_ptr->iteratorValue; }
-        pointer operator->() { return &m_ptr->iteratorValue; }
+        reference operator*() const { return m_ptr->entry; }
+        pointer operator->() { return &(m_ptr->entry); }
         SkipListIterator& operator++() { m_ptr = m_ptr->successor.load().right(); return *this; }
         SkipListIterator operator++(int) { SkipListIterator tmp = *this; ++(*this); return tmp; }
         friend bool operator== (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr == b.m_ptr; };

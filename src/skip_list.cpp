@@ -32,7 +32,7 @@ bool SkipList::insert(Key key, Element element) {
     Node *nextNode;
     std::tie(prevNode, nextNode) = searchToLevel(key, 1);
 
-    if (prevNode->key == key) {
+    if (prevNode->key() == key) {
         // key is already in list -> DUPLICATE_KEYS
         return false;
     }
@@ -79,8 +79,8 @@ std::optional<Element> SkipList::find(Key key) {
     Node *nextNode;
     std::tie(currNode, nextNode) = searchToLevel(key, 1);
 
-    if (currNode->key == key) {
-        return currNode->element;
+    if (currNode->key() == key) {
+        return currNode->element();
     } else {
         return {}; // element not found
     }
@@ -91,7 +91,7 @@ std::optional<Element> SkipList::remove(Key key) {
     Node *delNode;
     std::tie(prevNode, delNode) = searchToLevel(key - 1, 1);
 
-    if (delNode->key != key) {
+    if (delNode->key() != key) {
         return {}; // NO SUCH KEY
     }
     Node *result = deleteNode(prevNode, delNode);
@@ -99,7 +99,7 @@ std::optional<Element> SkipList::remove(Key key) {
         return {}; // NO SUCH KEY
     }
     searchToLevel(key, 2); // deletes the nodes at the higher levels of the tower
-    return delNode->element;
+    return delNode->element();
 }
 
 SkipList::Iterator SkipList::begin() const { return Iterator(head->successor.load().right()); }
@@ -127,7 +127,7 @@ std::pair<Node *, Level> SkipList::findStart(Level v) {
     Level currV = 1;
 
     // TODO check nullptr (if up does not reference itself)
-    while (currNode->up->successor.load().right()->key != MAX_KEY || currV < v) {
+    while (currNode->up->successor.load().right()->key() != MAX_KEY || currV < v) {
         currNode = currNode->up;
         currV++;
     }
@@ -138,7 +138,7 @@ std::pair<Node *, Level> SkipList::findStart(Level v) {
 std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
     Node *nextNode = currNode->successor.load().right();
 
-    while (nextNode->key <= k) {
+    while (nextNode->key() <= k) {
         // NOTE: ADDED towerRoot pointers for tail nodes, because otherwise we get a nullptr for the tail node, which does not have a successor
         while (nextNode->towerRoot->successor.load().marked()) {
             bool status;
@@ -150,7 +150,7 @@ std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
             }
             nextNode = currNode->successor.load().right();
         }
-        if (nextNode->key <= k) {
+        if (nextNode->key() <= k) {
             currNode = nextNode;
             nextNode = currNode->successor.load().right();
         }
@@ -182,7 +182,7 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
             prevNode = prevNode->backLink.load();
         }
         Node *delNode;
-        std::tie(prevNode, delNode) = searchRight(targetNode->key - 1, prevNode);
+        std::tie(prevNode, delNode) = searchRight(targetNode->key() - 1, prevNode);
 
         if (delNode != targetNode) {
             return std::make_tuple(prevNode, false, false); // target node was deleted from the list
@@ -193,7 +193,7 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
 // use pair to get node and bool
 // if second node is nullptr -> duplicate keys
 std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, Node *nextNode) {
-    if (prevNode->key == newNode->key) {
+    if (prevNode->key() == newNode->key()) {
         return std::make_pair(prevNode, nullptr);
     }
     while (true) {
@@ -218,9 +218,9 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
             }
         }
 
-        std::tie(prevNode, nextNode) = searchRight(newNode->key, prevNode);
+        std::tie(prevNode, nextNode) = searchRight(newNode->key(), prevNode);
 
-        if (prevNode->key == newNode->key) {
+        if (prevNode->key() == newNode->key()) {
             return std::make_pair(prevNode, nullptr);
         }
     }
@@ -271,13 +271,13 @@ void SkipList::print() {
 
     while (headIterator->up != headIterator) {
         auto listIterator = headIterator->successor.load().right();
-        if (listIterator->key == MAX_KEY) {
+        if (listIterator->key() == MAX_KEY) {
             std::cout << std::endl;
             break; // don't show empty trees
         }
         std::cout << "HEAD => ";
-        while (listIterator->key != MAX_KEY) {
-            std::cout << listIterator->key << " => ";
+        while (listIterator->key() != MAX_KEY) {
+            std::cout << listIterator->key() << " => ";
             listIterator = listIterator->successor.load().right();
         }
         std::cout << "END" << std::endl;
