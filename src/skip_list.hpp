@@ -19,8 +19,8 @@ constexpr uint64_t MAX_NUMBER_OF_KEYS = 8000000;
 // maxLevel of the tower -> log_(1/p)_(N) -> all not head or tail towers will be strictly smaller
 // because p=0.5, -> log2(M)
 // TODO constexpr does not work with log operations -> find a fix
-// log2(MAX_NUMBER_OF_KEYS)
-constexpr uint64_t MAX_LEVEL = 23;
+// log2(MAX_NUMBER_OF_KEYS) = 22
+constexpr uint64_t MAX_LEVEL = 22;
 
 // forward declare
 struct Node;
@@ -70,7 +70,7 @@ private:
     static constexpr uint64_t pointerMask = ~comparisonMask;
 };
 
-struct alignas(8) Node {
+struct Node {
     // constructs a root node
     Node(Key key, Element element) : entry(std::make_pair(key, element)), backLink(nullptr), down(nullptr), towerRoot(this),
                                      up(nullptr) {}
