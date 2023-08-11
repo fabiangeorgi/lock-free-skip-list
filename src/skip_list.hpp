@@ -70,7 +70,7 @@ private:
     static constexpr uint64_t pointerMask = ~comparisonMask;
 };
 
-struct alignas(64) Node {
+struct alignas(8) Node {
     // constructs a root node
     Node(Key key, Element element) : entry(std::make_pair(key, element)), backLink(nullptr), down(nullptr), towerRoot(this),
                                      up(nullptr) {}
