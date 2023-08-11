@@ -193,7 +193,6 @@ private:
     // starts from currentNode and searches the level for two consecutive nodes such that the first has a key less or equal to k, and the second has a key strictly greater than k
     std::pair<Node *, Node *> searchRight(Key k, Node *currNode);
 
-    // TODO check if second return type makes sense as bool or we need enum (for now we could say true -> IN; false -> DELETED
     // attempts to flag the predecessor of targetNode
     std::tuple<Node *, bool, bool> tryFlagNode(Node *prevNode, Node *targetNode);
 
