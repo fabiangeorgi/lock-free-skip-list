@@ -179,15 +179,15 @@ std::pair<Node *, Level> SkipList::findStart(Level v) {
  */
 std::pair<Node *, Node *> SkipList::searchRight(Key k, Node *currNode) {
     Node *nextNode = currNode->successor.load().right();
+    bool status;
+    bool _result; // don't need it
 
     while (nextNode->key() <= k) {
         // routine to delete superfluous nodes along the way when searching
         // NOTE: ADDED towerRoot pointers for tail nodes, because otherwise we get a nullptr for the tail node, which does not have a successor
         while (nextNode->towerRoot->successor.load().marked()) {
             // flag currNode (nextNode's predecessor)
-            bool status;
-            // we don't need the result in the return values
-            std::tie(currNode, status, std::ignore) = tryFlagNode(currNode, nextNode);
+            std::tie(currNode, status, _result) = tryFlagNode(currNode, nextNode);
             // check if currNode (nextNode's predecessor) was flagged
             if (status == true) { // STILL IN LIST
                 // physically delete nextNode
