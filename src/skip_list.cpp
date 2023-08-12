@@ -77,7 +77,9 @@ bool SkipList::insert(Key key, Element element) {
             // now delete all nodes
             for (const auto& [key, value] : insertionMemory) {
                 // delete the previous inserted nodes in tower
-                deleteNode(value.first, value.second);
+                if (value.second != newRNode) {
+                    deleteNode(value.first, value.second);
+                }
             }
             return true;
         }
