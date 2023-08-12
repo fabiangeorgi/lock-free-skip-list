@@ -70,9 +70,9 @@ bool SkipList::insert(Key key, Element element) {
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-//            if (result == newNode && newNode != newRNode) {
-//                deleteNode(prevNode, newNode);
-//            }
+            if (result == newNode && newNode != newRNode) {
+                deleteNode(prevNode, newNode);
+            }
             return true;
         }
 
@@ -127,7 +127,7 @@ std::optional<Element> SkipList::remove(Key key) {
         return {}; // NO SUCH KEY
     }
     // deletes the nodes at the higher levels of the tower, because search deletes superfluous nodes
-    searchToLevel(key, 2);
+//    searchToLevel(key, 2);
     return delNode->element();
 }
 
