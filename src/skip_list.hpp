@@ -221,6 +221,8 @@ private:
         return address;
     }
 
+    int flipCoin();
+
     Node *head;
 
     Node *tail;

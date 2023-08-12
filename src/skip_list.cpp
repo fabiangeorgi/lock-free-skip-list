@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <iostream>
+#include <random>
 
 SkipList::SkipList() {
     head = new Node(MIN_KEY, 0);
@@ -9,11 +10,11 @@ SkipList::SkipList() {
 
     head->successor.store({tail, false, false});
 
-    Node* iteratorHead = head;
-    Node* iteratorTail = tail;
+    Node *iteratorHead = head;
+    Node *iteratorTail = tail;
     for (int i = 0; i < MAX_LEVEL; i++) {
-        Node* headNode = new Node(MIN_KEY, iteratorHead, head);
-        Node* tailNode = new Node(MAX_KEY, iteratorTail, tail);
+        Node *headNode = new Node(MIN_KEY, iteratorHead, head);
+        Node *tailNode = new Node(MAX_KEY, iteratorTail, tail);
 
         headNode->successor.store({tailNode, false, false});
 
@@ -48,7 +49,7 @@ bool SkipList::insert(Key key, Element element) {
 
     // determine the desired height of the tower
     Level towerHeight = 1;
-    while (rand() % 2 && towerHeight <= MAX_LEVEL - 1) {
+    while (flipCoin() && towerHeight <= MAX_LEVEL - 1) {
         towerHeight++;
     }
 
@@ -323,7 +324,7 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
  * will remove the flag tag in prevNode
  */
 void SkipList::helpMarked(Node *prevNode, Node *delNode) {
-    Node* nextNode = delNode->successor.load().right();
+    Node *nextNode = delNode->successor.load().right();
     CAS(prevNode->successor, {delNode, false, true}, {nextNode, false, false});
 }
 
@@ -347,7 +348,7 @@ void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
  */
 void SkipList::tryMark(Node *delNode) {
     do {
-        Node* nextNode = delNode->successor.load().right();
+        Node *nextNode = delNode->successor.load().right();
         Successor result = CAS(delNode->successor, {nextNode, false, false}, {nextNode, true, false});
         // C&S can fail if either result is flagged or delNode's right pointer changed
         if (result.flagged()) {
@@ -375,4 +376,10 @@ void SkipList::print() {
         headIterator = headIterator->up;
     }
     std::cout << std::endl;
+}
+
+int SkipList::flipCoin() {
+    static thread_local std::mt19937 generator;
+    std::uniform_int_distribution<int> distribution(0, 1);
+    return distribution(generator);
 }
