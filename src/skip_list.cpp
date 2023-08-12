@@ -179,13 +179,14 @@ SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pai
     while (currV > v) {
         Node *nextNode;
         // IMPROVEMENT save these nodes to later not search again
-        std::tie(currNode, nextNode) = searchRight(k, currNode);
+        auto result = searchRight(k, currNode);
+        insertionMap[currV] = result;
+        std::tie(currNode, nextNode) = result;
         currNode = currNode->down;
         currV--;
     }
     // searches on level v and returns result
     auto result = searchRight(k, currNode);
-    insertionMap[currV] = result;
     return result;
 }
 
