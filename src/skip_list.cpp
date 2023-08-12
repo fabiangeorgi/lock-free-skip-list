@@ -93,7 +93,7 @@ bool SkipList::insert(Key key, Element element) {
         if (insertionMemory.contains(currV)) {
             std::tie(prevNode, nextNode) = insertionMemory[currV];
         } else {
-            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
+            std::tie(prevNode, nextNode) = searchToLevelWithInsertionMap(key, currV, insertionMemory);
         }
 
     }
@@ -135,7 +135,7 @@ std::optional<Element> SkipList::remove(Key key) {
         return {}; // NO SUCH KEY
     }
     // deletes the nodes at the higher levels of the tower, because search deletes superfluous nodes
-//    searchToLevel(key, 2);
+    searchToLevel(key, 2);
     return delNode->element();
 }
 
