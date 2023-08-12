@@ -219,10 +219,10 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
 
         // flag it
         Successor oldSuccessor = {targetNode, false, false};
-        auto result = CAS(prevNode->successor, oldSuccessor, flaggedPredecessor);
+        bool result = prevNode->successor.compare_exchange_weak(oldSuccessor, flaggedPredecessor);
 
         // if it worked return
-        if (result == flaggedPredecessor) {
+        if (result) {
             return std::make_tuple(prevNode, true, true);
         }
         // compare and swap was not successful -> handle error
@@ -263,18 +263,19 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
             helpFlagged(prevNode, prevSuccessor.load().right());
         } else {
             // set successor
-            newNode->successor = {nextNode, false, false};
+            Successor oldSuccessor = {nextNode, false, false};
+            newNode->successor = oldSuccessor;
             Successor newSuccessor = {newNode, false, false};
-            auto result = CAS(prevSuccessor, {nextNode, false, false}, newSuccessor);
+            bool result = prevSuccessor.compare_exchange_weak(oldSuccessor, newSuccessor);
 
-            if (result == newSuccessor) {
+            if (result) {
                 // successfully inserted node
                 return std::make_pair(prevNode, newNode);
             } else {
                 // could not insert (either flagged or marked)
-                if (result.flagged()) {
+                if (prevSuccessor.load().flagged()) {
                     // prevNode is flagged
-                    helpFlagged(prevNode, result.right());
+                    helpFlagged(prevNode, prevSuccessor.load().right());
                 }
                 while (prevNode->successor.load().marked()) {
                     // move prevNode via backlinks until it is not marked
@@ -324,7 +325,8 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
  */
 void SkipList::helpMarked(Node *prevNode, Node *delNode) {
     Node* nextNode = delNode->successor.load().right();
-    CAS(prevNode->successor, {delNode, false, true}, {nextNode, false, false});
+    Successor prevSuccessor = {delNode, false, true};
+    prevNode->successor.compare_exchange_weak(prevSuccessor, {nextNode, false, false});
 }
 
 /*
@@ -348,11 +350,12 @@ void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
 void SkipList::tryMark(Node *delNode) {
     do {
         Node* nextNode = delNode->successor.load().right();
-        Successor result = CAS(delNode->successor, {nextNode, false, false}, {nextNode, true, false});
+        Successor before = {nextNode, false, false};
+        bool result = delNode->successor.compare_exchange_weak(before, {nextNode, true, false});
         // C&S can fail if either result is flagged or delNode's right pointer changed
-        if (result.flagged()) {
+        if (result) {
             // node that should be marked is currently flagged -> try to remove flag
-            helpFlagged(delNode, result.right());
+            helpFlagged(delNode, delNode->successor.load().right());
         }
     } while (delNode->successor.load().marked() != true);
 }
