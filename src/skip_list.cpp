@@ -31,12 +31,10 @@ SkipList::SkipList() {
  * Insert new Node/Tower into Skip List
  */
 bool SkipList::insert(Key key, Element element) {
-    thread_local std::map<Level, std::pair<Node*, Node*>> insertionMemory{};
-
     Node *prevNode;
     Node *nextNode;
     // search correct place to insert Node/Tower
-    std::tie(prevNode, nextNode) = searchToLevelWithSafe(key, 1, insertionMemory);
+    std::tie(prevNode, nextNode) = searchToLevel(key, 1);
 
     // check if tower already exists
     if (prevNode->key() == key) {
@@ -88,13 +86,7 @@ bool SkipList::insert(Key key, Element element) {
         newNode = new Node(key, lastNode, newRNode);
 
         // search correct interval to insert on next level
-        // IMPROVEMENT: rather than searching: retrieve the nodes from the saved ones if it exists
-        if (insertionMemory.contains(currV)) {
-            std::tie(prevNode, nextNode) = insertionMemory[currV];
-        } else {
-            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
-        }
-
+        std::tie(prevNode, nextNode) = searchToLevel(key, currV);
     }
 }
 
@@ -155,36 +147,12 @@ std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
     // searches on different levels (using the skip connections in skip list)
     while (currV > v) {
         Node *nextNode;
-        // IMPROVEMENT save these nodes to later not search again
         std::tie(currNode, nextNode) = searchRight(k, currNode);
         currNode = currNode->down;
         currV--;
     }
     // searches on level v and returns result
     auto result = searchRight(k, currNode);
-    return result;
-}
-
-std::pair<Node *, Node *> SkipList::searchToLevelWithSafe(Key k, Level v, std::map<Level, std::pair<Node*, Node*>>& insertionMap) {
-    // we declare here to unroll in while loop directly
-    Node *currNode;
-    Level currV;
-
-    // lowest node in head tower that points to tail tower AND is of level v or higher
-    std::tie(currNode, currV) = findStart(v);
-    // searches on different levels (using the skip connections in skip list)
-    while (currV > v) {
-        Node *nextNode;
-        // IMPROVEMENT save these nodes to later not search again
-        auto result = searchRight(k, currNode);
-        insertionMap[currV] = result;
-        std::tie(currNode, nextNode) = result;
-        currNode = currNode->down;
-        currV--;
-    }
-    // searches on level v and returns result
-    auto result = searchRight(k, currNode);
-    insertionMap[currV] = result;
     return result;
 }
 

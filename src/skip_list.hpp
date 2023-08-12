@@ -5,7 +5,6 @@
 #include <tuple>
 #include <math.h>
 #include <atomic>
-#include <map>
 
 using Key = int64_t;
 using Element = int64_t;
@@ -187,9 +186,6 @@ private:
 
     // starts from the head tower and searches for two consecutive nodes on level v, such that the first has a key less than or euqal to k, and the second has a key stricly greater than k
     std::pair<Node *, Node *> searchToLevel(Key k, Level v);
-
-    // additionally saves the insertions in a thread local map
-    std::pair<Node *, Node *> searchToLevelWithSafe(Key k, Level v, std::map<Level, std::pair<Node*, Node*>>& insertionMap);
 
     // Searches the head tower for the lowest node that points to the tail tower
     std::pair<Node *, Level> findStart(Level v);
