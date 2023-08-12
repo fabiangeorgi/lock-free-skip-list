@@ -9,11 +9,11 @@ SkipList::SkipList() {
 
     head->successor.store({tail, false, false});
 
-    Node* iteratorHead = head;
-    Node* iteratorTail = tail;
+    Node *iteratorHead = head;
+    Node *iteratorTail = tail;
     for (int i = 0; i < MAX_LEVEL; i++) {
-        Node* headNode = new Node(MIN_KEY, iteratorHead, head);
-        Node* tailNode = new Node(MAX_KEY, iteratorTail, tail);
+        Node *headNode = new Node(MIN_KEY, iteratorHead, head);
+        Node *tailNode = new Node(MAX_KEY, iteratorTail, tail);
 
         headNode->successor.store({tailNode, false, false});
 
@@ -33,7 +33,7 @@ SkipList::SkipList() {
  * Insert new Node/Tower into Skip List
  */
 bool SkipList::insert(Key key, Element element) {
-    thread_local std::map<Level, std::pair<Node*, Node*>> insertionMemory{};
+    thread_local std::map<Level, std::pair<Node *, Node *>> insertionMemory{};
 
     Node *prevNode;
     Node *nextNode;
@@ -75,7 +75,7 @@ bool SkipList::insert(Key key, Element element) {
             // if not a root node, delete it
 
             // now delete all nodes
-            for (const auto& [key, value] : insertionMemory) {
+            for (const auto &[key, value]: insertionMemory) {
                 // delete the previous inserted nodes in tower
                 if (value.second != newRNode) {
                     deleteNode(value.first, value.second);
@@ -96,14 +96,9 @@ bool SkipList::insert(Key key, Element element) {
 
         // search correct interval to insert on next level
         // IMPROVEMENT: rather than searching: retrieve the nodes from the saved ones if it exists
-        if (insertionMemory.contains(currV)) {
-            std::tie(prevNode, nextNode) = insertionMemory[currV];
-        } else {
-            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
-            // still add them so we can delete them later
-            insertionMemory[currV] = {prevNode, nextNode};
-        }
-
+        std::tie(prevNode, nextNode) = searchToLevel(key, currV);
+        // still add them so we can delete them later
+        insertionMemory[currV] = {prevNode, nextNode};
     }
 }
 
@@ -175,7 +170,8 @@ std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
 }
 
 
-std::pair<Node *, Node *> SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pair<Node*, Node*>>& insertionMap) {
+std::pair<Node *, Node *>
+SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pair<Node *, Node *>> &insertionMap) {
     // we declare here to unroll in while loop directly
     Node *currNode;
     Level currV;
@@ -365,7 +361,7 @@ Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
  * will remove the flag tag in prevNode
  */
 void SkipList::helpMarked(Node *prevNode, Node *delNode) {
-    Node* nextNode = delNode->successor.load().right();
+    Node *nextNode = delNode->successor.load().right();
     CAS(prevNode->successor, {delNode, false, true}, {nextNode, false, false});
 }
 
@@ -389,7 +385,7 @@ void SkipList::helpFlagged(Node *prevNode, Node *delNode) {
  */
 void SkipList::tryMark(Node *delNode) {
     do {
-        Node* nextNode = delNode->successor.load().right();
+        Node *nextNode = delNode->successor.load().right();
         Successor result = CAS(delNode->successor, {nextNode, false, false}, {nextNode, true, false});
         // C&S can fail if either result is flagged or delNode's right pointer changed
         if (result.flagged()) {
