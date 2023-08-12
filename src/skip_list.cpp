@@ -73,8 +73,11 @@ bool SkipList::insert(Key key, Element element) {
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-            if (result == newNode && newNode != newRNode) {
-                deleteNode(prevNode, newNode);
+
+            // now delete all nodes
+            for (const auto& [key, value] : insertionMemory) {
+                // delete the previous inserted nodes in tower
+                deleteNode(value.first, value.second);
             }
             return true;
         }
@@ -95,6 +98,8 @@ bool SkipList::insert(Key key, Element element) {
             std::tie(prevNode, nextNode) = insertionMemory[currV];
         } else {
             std::tie(prevNode, nextNode) = searchToLevel(key, currV);
+            // still add them so we can delete them later
+            insertionMemory[currV] = {prevNode, nextNode};
         }
 
     }
