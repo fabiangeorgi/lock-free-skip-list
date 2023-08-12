@@ -94,7 +94,7 @@ bool SkipList::insert(Key key, Element element) {
         if (insertionMemory.contains(currV)) {
             std::tie(prevNode, nextNode) = insertionMemory[currV];
         } else {
-            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
+            std::tie(prevNode, nextNode) = searchToLevelWithInsertionMap(key, currV, insertionMemory);
         }
 
     }
