@@ -6,7 +6,6 @@
 #include <math.h>
 #include <atomic>
 #include <ctime>
-#include <map>
 
 using Key = int64_t;
 using Element = int64_t;
@@ -23,7 +22,7 @@ constexpr uint64_t MAX_NUMBER_OF_KEYS = 8000000;
 // TODO constexpr does not work with log operations -> find a fix
 // log2(MAX_NUMBER_OF_KEYS) = 22
 // use p=0.25 -> log4(M) = 11
-constexpr uint64_t MAX_LEVEL = 11;
+constexpr uint64_t MAX_LEVEL = 22;
 
 // forward declare
 struct Node;
@@ -84,7 +83,7 @@ struct alignas(8) Node {
                                                  entry(std::make_pair(key, 0)), up(nullptr) {}
 
     // Pointer to the previous Node
-    std::atomic<Node*> backLink;
+    std::atomic<Node *> backLink;
     // Stores next node (right), and if node is marked OR flagged
     std::atomic<Successor> successor;
     // A pointer to the node below, or null if root node (lowest level)
@@ -155,22 +154,34 @@ public:
     //       Note: We only require a ForwardIterator.
     struct SkipListIterator {
         using iterator_category = std::forward_iterator_tag;
-        using difference_type   = std::ptrdiff_t;
-        using value_type        = SkipList::Entry;
-        using pointer           = SkipList::Entry*;
-        using reference         = SkipList::Entry&;
+        using difference_type = std::ptrdiff_t;
+        using value_type = SkipList::Entry;
+        using pointer = SkipList::Entry *;
+        using reference = SkipList::Entry &;
 
-        SkipListIterator(Node* ptr) : m_ptr(ptr) {}
+        SkipListIterator(Node *ptr) : m_ptr(ptr) {}
 
         reference operator*() const { return m_ptr->entry; }
+
         pointer operator->() { return &(m_ptr->entry); }
-        SkipListIterator& operator++() { m_ptr = m_ptr->successor.load().right(); return *this; }
-        SkipListIterator operator++(int) { SkipListIterator tmp = *this; ++(*this); return tmp; }
-        friend bool operator== (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr == b.m_ptr; };
-        friend bool operator!= (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr != b.m_ptr; };
+
+        SkipListIterator &operator++() {
+            m_ptr = m_ptr->successor.load().right();
+            return *this;
+        }
+
+        SkipListIterator operator++(int) {
+            SkipListIterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        friend bool operator==(const SkipListIterator &a, const SkipListIterator &b) { return a.m_ptr == b.m_ptr; };
+
+        friend bool operator!=(const SkipListIterator &a, const SkipListIterator &b) { return a.m_ptr != b.m_ptr; };
 
     private:
-        Node* m_ptr;
+        Node *m_ptr;
     };
 
     using Iterator = SkipListIterator;
@@ -190,9 +201,6 @@ private:
 
     // starts from the head tower and searches for two consecutive nodes on level v, such that the first has a key less than or euqal to k, and the second has a key stricly greater than k
     std::pair<Node *, Node *> searchToLevel(Key k, Level v);
-
-    // additionally saves the insertions in a thread local map
-    std::pair<Node *, Node *> searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pair<Node*, Node*>>& insertionMap);
 
     // Searches the head tower for the lowest node that points to the tail tower
     std::pair<Node *, Level> findStart(Level v);
@@ -218,7 +226,7 @@ private:
     // attempts to mark the node delNode
     void tryMark(Node *delNode);
 
-    Successor CAS(std::atomic<Successor>& address, Successor old, Successor newValue) {
+    Successor CAS(std::atomic<Successor> &address, Successor old, Successor newValue) {
         if (address.compare_exchange_weak(old, newValue)) {
             return newValue;
         }

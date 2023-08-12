@@ -33,12 +33,10 @@ SkipList::SkipList() {
  * Insert new Node/Tower into Skip List
  */
 bool SkipList::insert(Key key, Element element) {
-    thread_local std::map<Level, std::pair<Node *, Node *>> insertionMemory{};
-
     Node *prevNode;
     Node *nextNode;
     // search correct place to insert Node/Tower
-    std::tie(prevNode, nextNode) = searchToLevelWithInsertionMap(key, 1, insertionMemory);
+    std::tie(prevNode, nextNode) = searchToLevel(key, 1);
 
     // check if tower already exists
     if (prevNode->key() == key) {
@@ -52,7 +50,7 @@ bool SkipList::insert(Key key, Element element) {
 
     // determine the desired height of the tower
     Level towerHeight = 1;
-    while (rand() % 4 == 1 && towerHeight <= MAX_LEVEL - 1) {
+    while (rand() % 2 && towerHeight <= MAX_LEVEL - 1) {
         towerHeight++;
     }
 
@@ -73,11 +71,8 @@ bool SkipList::insert(Key key, Element element) {
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-            for (const auto &[key, value]: insertionMemory) {
-                // delete the previous inserted nodes in tower
-                if (value.second != newRNode) {
-                    deleteNode(value.first, value.second);
-                }
+            if (result == newNode && newNode != newRNode) {
+                deleteNode(prevNode, newNode);
             }
             return true;
         }
@@ -93,14 +88,7 @@ bool SkipList::insert(Key key, Element element) {
         newNode = new Node(key, lastNode, newRNode);
 
         // search correct interval to insert on next level
-        // IMPROVEMENT: rather than searching: retrieve the nodes from the saved ones if it exists
-        if (insertionMemory.contains(currV)) {
-            prevNode = insertionMemory[currV].first;
-            nextNode = prevNode->successor.load().right();
-        } else {
-            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
-            insertionMemory[currV] = {prevNode, nextNode};
-        }
+        std::tie(prevNode, nextNode) = searchToLevel(key, currV);
     }
 }
 
@@ -167,30 +155,6 @@ std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
     }
     // searches on level v and returns result
     auto result = searchRight(k, currNode);
-    return result;
-}
-
-
-std::pair<Node *, Node *>
-SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pair<Node *, Node *>> &insertionMap) {
-    // we declare here to unroll in while loop directly
-    Node *currNode;
-    Level currV;
-
-    // lowest node in head tower that points to tail tower AND is of level v or higher
-    std::tie(currNode, currV) = findStart(v);
-    // searches on different levels (using the skip connections in skip list)
-    while (currV > v) {
-        Node *nextNode;
-        // IMPROVEMENT save these nodes to later not search again
-        std::tie(currNode, nextNode) = searchRight(k, currNode);
-        insertionMap[currV] = {currNode, nextNode};
-        currNode = currNode->down;
-        currV--;
-    }
-    // searches on level v and returns result
-    auto result = searchRight(k, currNode);
-    insertionMap[currV] = result;
     return result;
 }
 
