@@ -92,7 +92,8 @@ bool SkipList::insert(Key key, Element element) {
         // search correct interval to insert on next level
         // IMPROVEMENT: rather than searching: retrieve the nodes from the saved ones if it exists
         if (insertionMemory.contains(currV)) {
-            std::tie(prevNode, nextNode) = searchRight(key, insertionMemory[currV].first);
+            prevNode = insertionMemory[currV].first;
+            nextNode = prevNode->successor.load().right();
         } else {
             std::tie(prevNode, nextNode) = searchToLevel(key, currV);
         }
@@ -178,9 +179,8 @@ SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pai
     while (currV > v) {
         Node *nextNode;
         // IMPROVEMENT save these nodes to later not search again
-        auto result = searchRight(k, currNode);
-        insertionMap[currV] = result;
-        std::tie(currNode, nextNode) = result;
+        std::tie(currNode, nextNode) = searchRight(k, currNode);
+        insertionMap[currV] = {currNode, nextNode};
         currNode = currNode->down;
         currV--;
     }
