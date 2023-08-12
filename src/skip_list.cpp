@@ -32,7 +32,7 @@ SkipList::SkipList() {
  * Insert new Node/Tower into Skip List
  */
 bool SkipList::insert(Key key, Element element) {
-    std::map<Level, std::pair<Node*, Node*>> insertionMemory{};
+    std::vector<std::pair<Node *, Node *>> insertionMemory(MAX_LEVEL + 1, {head, tail});
 
     Node *prevNode;
     Node *nextNode;
@@ -71,10 +71,10 @@ bool SkipList::insert(Key key, Element element) {
         // check if tower became superfluous
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
-//            // if not a root node, delete it
-//            if (result == newNode && newNode != newRNode) {
-//                deleteNode(prevNode, newNode);
-//            }
+            // if not a root node, delete it
+            if (result == newNode && newNode != newRNode) {
+                deleteNode(prevNode, newNode);
+            }
             return true;
         }
 
@@ -90,12 +90,7 @@ bool SkipList::insert(Key key, Element element) {
 
         // search correct interval to insert on next level
         // IMPROVEMENT: rather than searching: retrieve the nodes from the saved ones if it exists
-        if (insertionMemory.contains(currV)) {
-            std::tie(prevNode, nextNode) = insertionMemory[currV];
-        } else {
-            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
-        }
-
+        std::tie(prevNode, nextNode) = insertionMemory[currV];
     }
 }
 
@@ -135,7 +130,7 @@ std::optional<Element> SkipList::remove(Key key) {
         return {}; // NO SUCH KEY
     }
     // deletes the nodes at the higher levels of the tower, because search deletes superfluous nodes
-//    searchToLevel(key, 2);
+    searchToLevel(key, 2);
     return delNode->element();
 }
 
@@ -166,7 +161,8 @@ std::pair<Node *, Node *> SkipList::searchToLevel(Key k, Level v) {
 }
 
 
-std::pair<Node *, Node *> SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pair<Node*, Node*>>& insertionMap) {
+std::pair<Node *, Node *>
+SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::vector<std::pair<Node *, Node *>> &insertionMap) {
     // we declare here to unroll in while loop directly
     Node *currNode;
     Level currV;
@@ -177,9 +173,8 @@ std::pair<Node *, Node *> SkipList::searchToLevelWithInsertionMap(Key k, Level v
     while (currV > v) {
         Node *nextNode;
         // IMPROVEMENT save these nodes to later not search again
-        auto result = searchRight(k, currNode);
-        insertionMap[currV] = result;
-        std::tie(currNode, nextNode) = result;
+        std::tie(currNode, nextNode) = searchRight(k, currNode);
+        insertionMap[currV] = {currNode, nextNode};
         currNode = currNode->down;
         currV--;
     }
