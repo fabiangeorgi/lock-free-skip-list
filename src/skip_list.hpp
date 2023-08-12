@@ -38,7 +38,7 @@ struct Successor { // for the successor fields -> probably a smarter way to do t
         }
     };
 
-    Node *right() const {
+    Node *right() {
         return reinterpret_cast<Node *>(internal64BitData & pointerMask);
     }
 
