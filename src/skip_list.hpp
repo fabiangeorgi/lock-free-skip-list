@@ -192,7 +192,7 @@ private:
     std::pair<Node *, Node *> searchToLevel(Key k, Level v);
 
     // additionally saves the insertions in a thread local map
-    std::pair<Node *, Node *> searchToLevelWithInsertionMap(Key k, Level v, std::vector<std::pair<Node*, Node*>>& insertionMap);
+    std::pair<Node *, Node *> searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pair<Node*, Node*>>& insertionMap);
 
     // Searches the head tower for the lowest node that points to the tail tower
     std::pair<Node *, Level> findStart(Level v);
