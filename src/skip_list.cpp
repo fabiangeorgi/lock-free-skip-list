@@ -353,7 +353,7 @@ void SkipList::tryMark(Node *delNode) {
         Successor before = {nextNode, false, false};
         bool result = delNode->successor.compare_exchange_weak(before, {nextNode, true, false});
         // C&S can fail if either result is flagged or delNode's right pointer changed
-        if (result) {
+        if (delNode->successor.load().flagged()) {
             // node that should be marked is currently flagged -> try to remove flag
             helpFlagged(delNode, delNode->successor.load().right());
         }
