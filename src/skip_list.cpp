@@ -120,7 +120,7 @@ std::optional<Element> SkipList::remove(Key key) {
     }
 
     // try to delete
-    Node *result = deleteNode(prevNode, delNode);
+    const Node *result = deleteNode(prevNode, delNode);
     if (result == nullptr) {
         // deletion was not successful
         return {}; // NO SUCH KEY
@@ -219,7 +219,7 @@ std::tuple<Node *, bool, bool> SkipList::tryFlagNode(Node *prevNode, Node *targe
 
         // flag it
         Successor oldSuccessor = {targetNode, false, false};
-        auto result = CAS(prevNode->successor, oldSuccessor, flaggedPredecessor);
+        Successor result = CAS(prevNode->successor, oldSuccessor, flaggedPredecessor);
 
         // if it worked return
         if (result == flaggedPredecessor) {
@@ -298,7 +298,7 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
  * get previousNode and the node that shall be deleted
  *
  */
-Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
+const Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
     bool status;
     bool result;
 

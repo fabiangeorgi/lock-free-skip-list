@@ -38,7 +38,7 @@ struct Successor { // for the successor fields -> probably a smarter way to do t
         }
     };
 
-    Node *right() {
+    Node *right() const {
         return reinterpret_cast<Node *>(internal64BitData & pointerMask);
     }
 
@@ -72,12 +72,13 @@ private:
 
 struct alignas(8) Node {
     // constructs a root node
-    Node(Key key, Element element) : entry(std::make_pair(key, element)), backLink(nullptr), down(nullptr), towerRoot(this),
+    Node(Key key, Element element) : backLink(nullptr), down(nullptr), towerRoot(this),
+                                     entry(std::make_pair(key, element)),
                                      up(nullptr) {}
 
     // one node in tower
-    Node(Key key, Node *down, Node *towerRoot) : entry(std::make_pair(key, 0)), backLink(nullptr), down(down),
-                                                 towerRoot(towerRoot), up(nullptr) {}
+    Node(Key key, Node *down, Node *towerRoot) : backLink(nullptr), down(down), towerRoot(towerRoot),
+                                                 entry(std::make_pair(key, 0)), up(nullptr) {}
 
     // Pointer to the previous Node
     std::atomic<Node*> backLink;
@@ -200,7 +201,7 @@ private:
     std::pair<Node *, Node *> insertNode(Node *newNode, Node *prevNode, Node *nextNode);
 
     // atempts to delete node delNode
-    Node *deleteNode(Node *prevNode, Node *delNode);
+    const Node *deleteNode(Node *prevNode, Node *delNode);
 
     // attempts to physically delete the marked node delNode
     void helpMarked(Node *prevNode, Node *delNode);
