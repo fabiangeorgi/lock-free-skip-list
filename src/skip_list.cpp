@@ -73,13 +73,8 @@ bool SkipList::insert(Key key, Element element) {
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-
-            // now delete all nodes
-            for (const auto &[key, value]: insertionMemory) {
-                // delete the previous inserted nodes in tower
-                if (value.second != newRNode) {
-                    deleteNode(value.first, value.second);
-                }
+            if (result == newNode && newNode != newRNode) {
+                deleteNode(prevNode, newNode);
             }
             return true;
         }
@@ -98,11 +93,8 @@ bool SkipList::insert(Key key, Element element) {
         // IMPROVEMENT: rather than searching: retrieve the nodes from the saved ones if it exists
         if (insertionMemory.contains(currV)) {
             std::tie(prevNode, nextNode) = insertionMemory[currV];
-            std::tie(prevNode, nextNode) = searchRight(key, insertionMemory[currV].first);
         } else {
             std::tie(prevNode, nextNode) = searchToLevel(key, currV);
-            // still add them so we can delete them later
-            insertionMemory[currV] = {prevNode, nextNode};
         }
     }
 }
@@ -187,9 +179,7 @@ SkipList::searchToLevelWithInsertionMap(Key k, Level v, std::map<Level, std::pai
     while (currV > v) {
         Node *nextNode;
         // IMPROVEMENT save these nodes to later not search again
-        auto result = searchRight(k, currNode);
-        insertionMap[currV] = result;
-        std::tie(currNode, nextNode) = result;
+        std::tie(currNode, nextNode) = searchRight(k, currNode);
         currNode = currNode->down;
         currV--;
     }
