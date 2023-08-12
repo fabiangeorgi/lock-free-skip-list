@@ -5,6 +5,7 @@
 #include <tuple>
 #include <math.h>
 #include <atomic>
+#include <ctime>
 
 using Key = int64_t;
 using Element = int64_t;
@@ -20,7 +21,8 @@ constexpr uint64_t MAX_NUMBER_OF_KEYS = 8000000;
 // because p=0.5, -> log2(M)
 // TODO constexpr does not work with log operations -> find a fix
 // log2(MAX_NUMBER_OF_KEYS) = 22
-constexpr uint64_t MAX_LEVEL = 22;
+// use p=0.25 -> log4(M) = 11
+constexpr uint64_t MAX_LEVEL = 11;
 
 // forward declare
 struct Node;

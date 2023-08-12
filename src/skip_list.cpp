@@ -25,6 +25,8 @@ SkipList::SkipList() {
     }
     // In the paper it states that top head should reference itself with up, but is not needed
     // iteratorHead->up = iteratorHead;
+
+    srand(time(nullptr));
 }
 
 /*
@@ -48,7 +50,7 @@ bool SkipList::insert(Key key, Element element) {
 
     // determine the desired height of the tower
     Level towerHeight = 1;
-    while (rand() % 2 && towerHeight <= MAX_LEVEL - 1) {
+    while (rand() % 4 == 0 && towerHeight <= MAX_LEVEL - 1) {
         towerHeight++;
     }
 
