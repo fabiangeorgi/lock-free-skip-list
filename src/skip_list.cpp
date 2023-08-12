@@ -32,7 +32,7 @@ SkipList::SkipList() {
  * Insert new Node/Tower into Skip List
  */
 bool SkipList::insert(Key key, Element element) {
-    std::map<Level, std::pair<Node*, Node*>> insertionMemory{};
+    thread_local std::map<Level, std::pair<Node*, Node*>> insertionMemory{};
 
     Node *prevNode;
     Node *nextNode;
