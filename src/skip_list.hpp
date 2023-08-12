@@ -83,7 +83,7 @@ struct alignas(8) Node {
                                                  entry(std::make_pair(key, 0)), up(nullptr) {}
 
     // Pointer to the previous Node
-    std::atomic<Node *> backLink;
+    std::atomic<Node*> backLink;
     // Stores next node (right), and if node is marked OR flagged
     std::atomic<Successor> successor;
     // A pointer to the node below, or null if root node (lowest level)
@@ -154,34 +154,22 @@ public:
     //       Note: We only require a ForwardIterator.
     struct SkipListIterator {
         using iterator_category = std::forward_iterator_tag;
-        using difference_type = std::ptrdiff_t;
-        using value_type = SkipList::Entry;
-        using pointer = SkipList::Entry *;
-        using reference = SkipList::Entry &;
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = SkipList::Entry;
+        using pointer           = SkipList::Entry*;
+        using reference         = SkipList::Entry&;
 
-        SkipListIterator(Node *ptr) : m_ptr(ptr) {}
+        SkipListIterator(Node* ptr) : m_ptr(ptr) {}
 
         reference operator*() const { return m_ptr->entry; }
-
         pointer operator->() { return &(m_ptr->entry); }
-
-        SkipListIterator &operator++() {
-            m_ptr = m_ptr->successor.load().right();
-            return *this;
-        }
-
-        SkipListIterator operator++(int) {
-            SkipListIterator tmp = *this;
-            ++(*this);
-            return tmp;
-        }
-
-        friend bool operator==(const SkipListIterator &a, const SkipListIterator &b) { return a.m_ptr == b.m_ptr; };
-
-        friend bool operator!=(const SkipListIterator &a, const SkipListIterator &b) { return a.m_ptr != b.m_ptr; };
+        SkipListIterator& operator++() { m_ptr = m_ptr->successor.load().right(); return *this; }
+        SkipListIterator operator++(int) { SkipListIterator tmp = *this; ++(*this); return tmp; }
+        friend bool operator== (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr == b.m_ptr; };
+        friend bool operator!= (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr != b.m_ptr; };
 
     private:
-        Node *m_ptr;
+        Node* m_ptr;
     };
 
     using Iterator = SkipListIterator;
@@ -226,7 +214,7 @@ private:
     // attempts to mark the node delNode
     void tryMark(Node *delNode);
 
-    Successor CAS(std::atomic<Successor> &address, Successor old, Successor newValue) {
+    Successor CAS(std::atomic<Successor>& address, Successor old, Successor newValue) {
         if (address.compare_exchange_weak(old, newValue)) {
             return newValue;
         }
