@@ -96,9 +96,14 @@ bool SkipList::insert(Key key, Element element) {
 
         // search correct interval to insert on next level
         // IMPROVEMENT: rather than searching: retrieve the nodes from the saved ones if it exists
-        std::tie(prevNode, nextNode) = searchToLevel(key, currV);
-        // still add them so we can delete them later
-        insertionMemory[currV] = {prevNode, nextNode};
+        if (insertionMemory.contains(currV)) {
+            std::tie(prevNode, nextNode) = insertionMemory[currV];
+            std::tie(prevNode, nextNode) = searchRight(key, insertionMemory[currV].first);
+        } else {
+            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
+            // still add them so we can delete them later
+            insertionMemory[currV] = {prevNode, nextNode};
+        }
     }
 }
 
