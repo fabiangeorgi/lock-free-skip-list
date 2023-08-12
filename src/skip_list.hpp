@@ -201,7 +201,7 @@ private:
     std::pair<Node *, Node *> insertNode(Node *newNode, Node *prevNode, Node *nextNode);
 
     // atempts to delete node delNode
-    const Node *deleteNode(Node *prevNode, Node *delNode);
+    Node *deleteNode(Node *prevNode, Node *delNode);
 
     // attempts to physically delete the marked node delNode
     void helpMarked(Node *prevNode, Node *delNode);

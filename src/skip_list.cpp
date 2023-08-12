@@ -120,7 +120,7 @@ std::optional<Element> SkipList::remove(Key key) {
     }
 
     // try to delete
-    const Node *result = deleteNode(prevNode, delNode);
+    Node *result = deleteNode(prevNode, delNode);
     if (result == nullptr) {
         // deletion was not successful
         return {}; // NO SUCH KEY
@@ -298,7 +298,7 @@ std::pair<Node *, Node *> SkipList::insertNode(Node *newNode, Node *prevNode, No
  * get previousNode and the node that shall be deleted
  *
  */
-const Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
+Node *SkipList::deleteNode(Node *prevNode, Node *delNode) {
     bool status;
     bool result;
 
