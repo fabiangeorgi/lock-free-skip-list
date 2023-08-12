@@ -50,7 +50,7 @@ bool SkipList::insert(Key key, Element element) {
 
     // determine the desired height of the tower
     Level towerHeight = 1;
-    while (rand() % 2 && towerHeight <= MAX_LEVEL - 1) {
+    while (rand() % 4 == 1 && towerHeight <= MAX_LEVEL - 1) {
         towerHeight++;
     }
 
