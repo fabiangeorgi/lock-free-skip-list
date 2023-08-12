@@ -22,7 +22,8 @@ constexpr uint64_t MAX_NUMBER_OF_KEYS = 8000000;
 // TODO constexpr does not work with log operations -> find a fix
 // log2(MAX_NUMBER_OF_KEYS) = 22
 // use p=0.25 -> log4(M) = 11
-constexpr uint64_t MAX_LEVEL = 11;
+// use p=0.1 -> log10(M) = 7
+constexpr uint64_t MAX_LEVEL = 7;
 
 // forward declare
 struct Node;
