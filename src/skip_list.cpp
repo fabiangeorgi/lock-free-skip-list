@@ -132,9 +132,9 @@ bool SkipList::insert(Key key, Element element) {
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-            if (result == newNode && newNode != newRNode) {
-                deleteNode(prevNode, newNode);
-            }
+//            if (result == newNode && newNode != newRNode) {
+//                deleteNode(prevNode, newNode);
+//            }
             return true;
         }
 
