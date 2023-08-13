@@ -162,7 +162,7 @@ private:
     std::pair<Node *, Node *> searchToLevel(Key k, Level v);
 
     // caches all the search results on every level
-    std::vector<std::pair<Node*, Node*>> searchToLevelAndCacheResults(Key k);
+    void searchToLevelAndCacheResults(Key k, std::vector<std::pair<Node*, Node*>>& cache);
 
     // returns nodes on the level one and the nodes and top of the tower
     std::pair<std::pair<Node *, Node *>, std::pair<Node *, Node *>> searchToLevelAndCacheTopResult(Key k);

@@ -91,7 +91,8 @@ SkipList::SkipList() {
  */
 bool SkipList::insert(Key key, Element element) {
     // search correct place to insert Node/Tower
-    std::vector<std::pair<Node*, Node*>> cache = searchToLevelAndCacheResults(key);
+    std::vector<std::pair<Node*, Node*>> cache(MAX_LEVEL + 1);
+    searchToLevelAndCacheResults(key, cache);
     std::vector<std::pair<Node*, Node*>> insertedNodes;
 
     Node *prevNode;
@@ -463,7 +464,7 @@ Successor SkipList::CAS(std::atomic<Successor> &address, Successor old, Successo
     return address;
 }
 
-std::vector<std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheResults(Key k) {
+void SkipList::searchToLevelAndCacheResults(Key k, std::vector<std::pair<Node*, Node*>>& cache) {
     // we declare here to unroll in while loop directly
     Node *currNode = head;
     Level currV = 1;
@@ -473,8 +474,6 @@ std::vector<std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheResults(Ke
         currNode = currNode->up;
     }
 
-    std::vector<std::pair<Node*, Node*>> cache(MAX_LEVEL + 1);
-
     // searches on different levels (using the skip connections in skip list)
     while (currV >= 1) {
         Node *nextNode;
@@ -483,8 +482,6 @@ std::vector<std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheResults(Ke
         currNode = currNode->down;
         currV--;
     }
-
-    return cache;
 }
 
 std::pair<std::pair<Node *, Node *>, std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheTopResult(Key k) {
