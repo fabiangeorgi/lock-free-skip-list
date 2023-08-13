@@ -92,6 +92,7 @@ SkipList::SkipList() {
 bool SkipList::insert(Key key, Element element) {
     // search correct place to insert Node/Tower
     std::vector<std::pair<Node*, Node*>> cache = searchToLevelAndCacheResults(key);
+    std::vector<std::pair<Node*, Node*>> insertedNodes;
 
     Node *prevNode;
     Node *nextNode;
@@ -132,9 +133,9 @@ bool SkipList::insert(Key key, Element element) {
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-//            if (result == newNode && newNode != newRNode) {
-//                deleteNode(prevNode, newNode);
-//            }
+            for (auto& [prev, delNode]: insertedNodes) {
+                deleteNode(prevNode, delNode);
+            }
             return true;
         }
 
@@ -143,6 +144,7 @@ bool SkipList::insert(Key key, Element element) {
         if (currV == towerHeight + 1) {
             return true;
         }
+        insertedNodes.emplace_back(prevNode, result);
 
         auto lastNode = newNode;
         // create new node with correct down and towerRoot pointers
@@ -179,7 +181,10 @@ std::optional<Element> SkipList::find(Key key) {
 std::optional<Element> SkipList::remove(Key key) {
     Node *prevNode;
     Node *delNode;
-    std::tie(prevNode, delNode) = searchToLevel(key - 1, 1);
+    std::pair<Node*, Node*> cache;
+    std::pair<Node*, Node*> levelResult;
+    std::tie(levelResult, cache) = searchToLevelAndCacheTopResult(key - 1);
+    std::tie(prevNode, delNode) = levelResult;
 
     // key is not found in the list
     if (delNode->key() != key) {
@@ -193,7 +198,8 @@ std::optional<Element> SkipList::remove(Key key) {
         return {}; // NO SUCH KEY
     }
     // deletes the nodes at the higher levels of the tower, because search deletes superfluous nodes
-    searchToLevel(key, 2);
+//    searchToLevel(key, 2);
+    searchRight(key, cache.first);
     return delNode->element();
 }
 
@@ -479,4 +485,42 @@ std::vector<std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheResults(Ke
     }
 
     return cache;
+}
+
+std::pair<std::pair<Node *, Node *>, std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheTopResult(Key k) {
+    // we declare here to unroll in while loop directly
+    Node *currNode = head;
+    Level currV = 1;
+
+    while (currNode->successor.load().right()->key() != MAX_KEY) {
+        currV++;
+        currNode = currNode->up;
+    }
+
+    // use once here, because then we don't have an if statement in the while loop
+    std::pair<Node*, Node*> cache;
+    bool first = true;
+    if (currV > 1) {
+        Node *nextNode;
+        std::tie(currNode, nextNode) = searchRight(k, currNode);
+        cache = {currNode, nextNode};
+        first = false;
+        currNode = currNode->down;
+        currV--;
+    }
+
+    // searches on different levels (using the skip connections in skip list)
+    while (currV > 1) {
+        Node *nextNode;
+        std::tie(currNode, nextNode) = searchRight(k, currNode);
+        currNode = currNode->down;
+        currV--;
+    }
+
+    auto result = searchRight(k, currNode);
+
+    if (first) {
+        cache = result;
+    }
+    return std::make_pair(result, cache);
 }
