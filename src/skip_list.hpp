@@ -164,9 +164,6 @@ private:
     // caches all the search results on every level
     void searchToLevelAndCacheResults(Key k, std::vector<std::pair<Node*, Node*>>& cache);
 
-    // returns nodes on the level one and the nodes and top of the tower
-    std::pair<std::pair<Node *, Node *>, std::pair<Node *, Node *>> searchToLevelAndCacheTopResult(Key k);
-
     // Searches the head tower for the lowest node that points to the tail tower
     std::pair<Node *, Level> findStart(Level v);
 
@@ -179,7 +176,7 @@ private:
     // attempts to insert node newNode into the list. Nodes prevNode and nextNode specify the position where insertNode will attempt to insert newNode
     std::pair<Node *, Node *> insertNode(Node *newNode, Node *prevNode, Node *nextNode);
 
-    // atempts to delete node delNode
+    // attempts to delete node delNode
     Node *deleteNode(Node *prevNode, Node *delNode);
 
     // attempts to physically delete the marked node delNode
