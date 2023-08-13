@@ -4,6 +4,64 @@
 #include <iostream>
 #include <random>
 
+/*
+ * NODE
+ */
+Node::Node(Key key, Element element) : backLink(nullptr), down(nullptr), towerRoot(this),
+                                       entry(std::make_pair(key, element)),
+                                       up(nullptr) {}
+
+Node::Node(Key key, Node *down, Node *towerRoot) : backLink(nullptr), down(down), towerRoot(towerRoot),
+                                                   entry(std::make_pair(key, 0)), up(nullptr) {}
+
+
+/*
+* SUCCESSOR
+*/
+Successor::Successor(Node *right, bool marked, bool flagged) : internal64BitData(reinterpret_cast<uint64_t>(right)) {
+    if (marked) {
+        internal64BitData = internal64BitData | markedBits;
+    } else if (flagged) {
+        internal64BitData = internal64BitData | flaggedBits;
+    }
+}
+
+Node *Successor::right() {
+    return reinterpret_cast<Node *>(internal64BitData & pointerMask);
+}
+
+bool Successor::marked() const {
+    return (internal64BitData & markedBits);
+}
+
+bool Successor::flagged() const {
+    return (internal64BitData & flaggedBits);
+}
+
+bool Successor::operator==(const Successor &other) const {
+    return internal64BitData == other.internal64BitData;
+}
+
+/*
+ * SKIP LIST ITERATOR
+ */
+SkipList::Iterator::SkipListIterator(Node *ptr) : m_ptr(ptr) {}
+
+SkipList::Iterator::pointer SkipList::Iterator::operator->() { return &(m_ptr->entry); }
+
+SkipList::Entry &SkipList::Iterator::operator*() const { return m_ptr->entry; }
+
+SkipList::Iterator &SkipList::Iterator::operator++() { m_ptr = m_ptr->successor.load().right(); return *this; }
+
+SkipList::SkipListIterator SkipList::SkipListIterator::operator++(int) { SkipListIterator tmp = *this; ++(*this); return tmp; }
+
+bool operator!=(const SkipList::SkipListIterator &a, const SkipList::SkipListIterator &b) { return a.m_ptr != b.m_ptr; }
+
+bool operator==(const SkipList::SkipListIterator &a, const SkipList::SkipListIterator &b) { return a.m_ptr == b.m_ptr; }
+
+/*
+ * SKIPLIST
+ */
 SkipList::SkipList() {
     head = new Node(MIN_KEY, 0);
     tail = new Node(MAX_KEY, 0);
@@ -70,9 +128,9 @@ bool SkipList::insert(Key key, Element element) {
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-//            if (result == newNode && newNode != newRNode) {
-//                deleteNode(prevNode, newNode);
-//            }
+            if (result == newNode && newNode != newRNode) {
+                deleteNode(prevNode, newNode);
+            }
             return true;
         }
 
@@ -127,7 +185,7 @@ std::optional<Element> SkipList::remove(Key key) {
         return {}; // NO SUCH KEY
     }
     // deletes the nodes at the higher levels of the tower, because search deletes superfluous nodes
-//    searchToLevel(key, 2);
+    searchToLevel(key, 2);
     return delNode->element();
 }
 
@@ -382,4 +440,11 @@ int SkipList::flipCoin() {
     static thread_local std::mt19937 generator;
     std::uniform_int_distribution<int> distribution(0, 1);
     return distribution(generator);
+}
+
+Successor SkipList::CAS(std::atomic<Successor> &address, Successor old, Successor newValue) const {
+    if (address.compare_exchange_weak(old, newValue)) {
+        return newValue;
+    }
+    return address;
 }

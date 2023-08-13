@@ -15,7 +15,7 @@ using Level = uint64_t;
 constexpr Key MIN_KEY = std::numeric_limits<Key>::min();
 constexpr Key MAX_KEY = std::numeric_limits<Key>::max();
 
-// Maximum of 10 Million keys will be inserted -> can calculate tower height
+// Maximum of 8 Million keys will be inserted -> can calculate tower height
 constexpr uint64_t MAX_NUMBER_OF_KEYS = 8000000;
 // maxLevel of the tower -> log_(1/p)_(N) -> all not head or tail towers will be strictly smaller
 // because p=0.5, -> log2(M)
@@ -27,36 +27,22 @@ constexpr uint64_t MAX_LEVEL = 22;
 // forward declare
 struct Node;
 
-struct Successor { // for the successor fields -> probably a smarter way to do this
-    uint64_t internal64BitData;
-
+struct Successor {
     Successor() = default;
 
-    Successor(Node *right, bool marked, bool flagged) : internal64BitData(reinterpret_cast<uint64_t>(right)) {
-        if (marked) {
-            internal64BitData = internal64BitData | markedBits;
-        } else if (flagged) {
-            internal64BitData = internal64BitData | flaggedBits;
-        }
-    };
+    Successor(Node *right, bool marked, bool flagged);;
 
-    Node *right() {
-        return reinterpret_cast<Node *>(internal64BitData & pointerMask);
-    }
+    Node *right();
 
-    bool marked() const {
-        return (internal64BitData & markedBits);
-    }
+    bool marked() const;
 
-    bool flagged() const {
-        return (internal64BitData & flaggedBits);
-    }
+    bool flagged() const;
 
-    bool operator==(Successor const &other) const {
-        return internal64BitData == other.internal64BitData;
-    }
+    bool operator==(Successor const &other) const;
 
 private:
+    uint64_t internal64BitData;
+
     // mostly copy and paste from the buffer manager assignment -> using swips, because an atomic datatype can only store 64 bits (e.g. one pointer for node)
     // so need to do pointer tagging
 
@@ -74,13 +60,10 @@ private:
 
 struct alignas(8) Node {
     // constructs a root node
-    Node(Key key, Element element) : backLink(nullptr), down(nullptr), towerRoot(this),
-                                     entry(std::make_pair(key, element)),
-                                     up(nullptr) {}
+    Node(Key key, Element element);
 
     // one node in tower
-    Node(Key key, Node *down, Node *towerRoot) : backLink(nullptr), down(down), towerRoot(towerRoot),
-                                                 entry(std::make_pair(key, 0)), up(nullptr) {}
+    Node(Key key, Node *down, Node *towerRoot);
 
     // Pointer to the previous Node
     std::atomic<Node*> backLink;
@@ -145,13 +128,6 @@ public:
     // This says that the value type of a SkipList iterator is an `Entry`.
     using value_type = Entry;
 
-    // TODO: Change this to the type of your custom iterator.
-    //       We only use std::vector here as a placeholder to compile.
-    //       Check for details on how to implement an iterator:
-    //         - https://www.internalpointers.com/post/writing-custom-iterators-modern-cpp
-    //         - https://en.cppreference.com/w/cpp/named_req/ForwardIterator
-    //         - https://en.cppreference.com/w/cpp/iterator/iterator_traits
-    //       Note: We only require a ForwardIterator.
     struct SkipListIterator {
         using iterator_category = std::forward_iterator_tag;
         using difference_type   = std::ptrdiff_t;
@@ -159,14 +135,14 @@ public:
         using pointer           = SkipList::Entry*;
         using reference         = SkipList::Entry&;
 
-        SkipListIterator(Node* ptr) : m_ptr(ptr) {}
+        SkipListIterator(Node* ptr);
 
-        reference operator*() const { return m_ptr->entry; }
-        pointer operator->() { return &(m_ptr->entry); }
-        SkipListIterator& operator++() { m_ptr = m_ptr->successor.load().right(); return *this; }
-        SkipListIterator operator++(int) { SkipListIterator tmp = *this; ++(*this); return tmp; }
-        friend bool operator== (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr == b.m_ptr; };
-        friend bool operator!= (const SkipListIterator& a, const SkipListIterator& b) { return a.m_ptr != b.m_ptr; };
+        reference operator*() const;
+        pointer operator->();
+        SkipListIterator& operator++();
+        SkipListIterator operator++(int);
+        friend bool operator== (const SkipListIterator& a, const SkipListIterator& b);;
+        friend bool operator!= (const SkipListIterator& a, const SkipListIterator& b);;
 
     private:
         Node* m_ptr;
@@ -182,11 +158,6 @@ public:
     void print();
 
 private:
-    // TODO: Add members and helper methods here.
-    //       If you need a variable that each thread needs it's own copy of, have a look at thread_local variables. Note
-    //       that you cannot have thread_local members, so you need to put them in the function where you need them.
-    // ...]
-
     // starts from the head tower and searches for two consecutive nodes on level v, such that the first has a key less than or euqal to k, and the second has a key stricly greater than k
     std::pair<Node *, Node *> searchToLevel(Key k, Level v);
 
@@ -214,12 +185,7 @@ private:
     // attempts to mark the node delNode
     void tryMark(Node *delNode);
 
-    Successor CAS(std::atomic<Successor>& address, Successor old, Successor newValue) {
-        if (address.compare_exchange_weak(old, newValue)) {
-            return newValue;
-        }
-        return address;
-    }
+    Successor CAS(std::atomic<Successor>& address, Successor old, Successor newValue) const;
 
     int flipCoin();
 
