@@ -90,10 +90,14 @@ SkipList::SkipList() {
  * Insert new Node/Tower into Skip List
  */
 bool SkipList::insert(Key key, Element element) {
+    // search correct place to insert Node/Tower
+    std::vector<std::pair<Node*, Node*>> cache = searchToLevelAndCacheResults(key);
+
     Node *prevNode;
     Node *nextNode;
-    // search correct place to insert Node/Tower
-    std::tie(prevNode, nextNode) = searchToLevel(key, 1);
+
+    // level 1 result
+    std::tie(prevNode, nextNode) = cache[1];
 
     // check if tower already exists
     if (prevNode->key() == key) {
@@ -145,7 +149,7 @@ bool SkipList::insert(Key key, Element element) {
         newNode = new Node(key, lastNode, newRNode);
 
         // search correct interval to insert on next level
-        std::tie(prevNode, nextNode) = searchToLevel(key, currV);
+        std::tie(prevNode, nextNode) = cache[currV];
     }
 }
 
@@ -447,4 +451,28 @@ Successor SkipList::CAS(std::atomic<Successor> &address, Successor old, Successo
         return newValue;
     }
     return address;
+}
+
+std::vector<std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheResults(Key k) {
+    // we declare here to unroll in while loop directly
+    Node *currNode = head;
+    Level currV = 1;
+
+    while (currNode->successor.load().right()->key() != MAX_KEY) {
+        currV++;
+        currNode = currNode->up;
+    }
+
+    std::vector<std::pair<Node*, Node*>> cache(MAX_LEVEL + 1, {head, tail});
+
+    // searches on different levels (using the skip connections in skip list)
+    while (currV >= 1) {
+        Node *nextNode;
+        std::tie(currNode, nextNode) = searchRight(k, currNode);
+        cache[currV] = {currNode, nextNode};
+        currNode = currNode->down;
+        currV--;
+    }
+
+    return cache;
 }
