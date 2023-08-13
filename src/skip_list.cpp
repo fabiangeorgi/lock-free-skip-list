@@ -149,7 +149,11 @@ bool SkipList::insert(Key key, Element element) {
         newNode = new Node(key, lastNode, newRNode);
 
         // search correct interval to insert on next level
-        std::tie(prevNode, nextNode) = cache[currV];
+        if (cache[currV].first == nullptr) {
+            std::tie(prevNode, nextNode) = searchToLevel(key, currV);
+        } else {
+            std::tie(prevNode, nextNode) = cache[currV];
+        }
     }
 }
 
@@ -463,7 +467,7 @@ std::vector<std::pair<Node *, Node *>> SkipList::searchToLevelAndCacheResults(Ke
         currNode = currNode->up;
     }
 
-    std::vector<std::pair<Node*, Node*>> cache(MAX_LEVEL + 1, {head, tail});
+    std::vector<std::pair<Node*, Node*>> cache(MAX_LEVEL + 1);
 
     // searches on different levels (using the skip connections in skip list)
     while (currV >= 1) {
