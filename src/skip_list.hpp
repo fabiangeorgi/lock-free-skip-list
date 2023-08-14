@@ -164,6 +164,9 @@ private:
     // caches all the search results on every level
     void searchToLevelAndCacheResults(Key k, std::vector<std::pair<Node*, Node*>>& cache);
 
+    // caches top element of tower so we can delete it later
+    std::pair<Node *, Node *> searchToLevelSaveTop(Key k, std::pair<Node *, Node *> &cache);
+
     // Searches the head tower for the lowest node that points to the tail tower
     std::pair<Node *, Level> findStart(Level v);
 

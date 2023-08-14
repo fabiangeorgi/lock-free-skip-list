@@ -190,7 +190,8 @@ std::optional<Element> SkipList::find(Key key) {
 std::optional<Element> SkipList::remove(Key key) {
     Node * prevNode;
     Node * delNode;
-    std::tie(prevNode, delNode) = searchToLevel(key - 1, 1);
+    std::pair<Node*, Node*> cache;
+    std::tie(prevNode, delNode) = searchToLevelSaveTop(key - 1, cache);
 
     // key is not found in the list
     if (delNode->key() != key) {
@@ -204,7 +205,12 @@ std::optional<Element> SkipList::remove(Key key) {
         return {}; // NO SUCH KEY
     }
     // deletes the nodes at the higher levels of the tower, because search deletes superfluous nodes
-    searchToLevel(key, 2);
+    Node* iterator = cache.first;
+    while (iterator->down != nullptr) {
+        searchRight(key, iterator);
+        iterator = iterator->down;
+    }
+
     return delNode->element();
 }
 
@@ -486,4 +492,31 @@ void SkipList::searchToLevelAndCacheResults(Key k, std::vector<std::pair<Node *,
         currNode = currNode->down;
         currV--;
     }
+}
+
+std::pair<Node *, Node *> SkipList::searchToLevelSaveTop(Key k, std::pair<Node*, Node*>& cache) {
+    // we declare here to unroll in while loop directly
+    Node * currNode;
+    Level currV;
+    bool first = true;
+
+    // lowest node in head tower that points to tail tower AND is of level v or higher
+    std::tie(currNode, currV) = findStart(1);
+    // searches on different levels (using the skip connections in skip list)
+    while (currV > 1) {
+        Node * nextNode;
+        std::tie(currNode, nextNode) = searchRight(k, currNode);
+        if (first) {
+            cache = {currNode, nextNode};
+            first = false;
+        }
+        currNode = currNode->down;
+        currV--;
+    }
+    // searches on level v and returns result
+    auto result = searchRight(k, currNode);
+    if (first) {
+        cache = result;
+    }
+    return result;
 }
