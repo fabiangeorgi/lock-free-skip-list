@@ -66,7 +66,7 @@ struct alignas(8) Node {
     Node(Key key, Node *down, Node *towerRoot);
 
     // Pointer to the previous Node
-    std::atomic<Node*> backLink;
+    std::atomic<Node *> backLink;
     // Stores next node (right), and if node is marked OR flagged
     std::atomic<Successor> successor;
     // A pointer to the node below, or null if root node (lowest level)
@@ -130,22 +130,27 @@ public:
 
     struct SkipListIterator {
         using iterator_category = std::forward_iterator_tag;
-        using difference_type   = std::ptrdiff_t;
-        using value_type        = SkipList::Entry;
-        using pointer           = SkipList::Entry*;
-        using reference         = SkipList::Entry&;
+        using difference_type = std::ptrdiff_t;
+        using value_type = SkipList::Entry;
+        using pointer = SkipList::Entry *;
+        using reference = SkipList::Entry &;
 
-        SkipListIterator(Node* ptr);
+        SkipListIterator(Node *ptr);
 
         reference operator*() const;
+
         pointer operator->();
-        SkipListIterator& operator++();
+
+        SkipListIterator &operator++();
+
         SkipListIterator operator++(int);
-        friend bool operator== (const SkipListIterator& a, const SkipListIterator& b);;
-        friend bool operator!= (const SkipListIterator& a, const SkipListIterator& b);;
+
+        friend bool operator==(const SkipListIterator &a, const SkipListIterator &b);;
+
+        friend bool operator!=(const SkipListIterator &a, const SkipListIterator &b);;
 
     private:
-        Node* m_ptr;
+        Node *m_ptr;
     };
 
     using Iterator = SkipListIterator;
@@ -162,10 +167,7 @@ private:
     std::pair<Node *, Node *> searchToLevel(Key k, Level v);
 
     // caches all the search results on every level
-    void searchToLevelAndCacheResults(Key k, std::vector<std::pair<Node*, Node*>>& cache);
-
-    // caches top element of tower so we can delete it later
-    std::pair<Node *, Node *> searchToLevelSaveTop(Key k, std::pair<Node *, Node *> &cache);
+    void searchToLevelAndCacheResults(Key k, std::vector<std::pair<Node *, Node *>> &cache);
 
     // Searches the head tower for the lowest node that points to the tail tower
     std::pair<Node *, Level> findStart(Level v);
@@ -191,7 +193,7 @@ private:
     // attempts to mark the node delNode
     void tryMark(Node *delNode);
 
-    Successor CAS(std::atomic<Successor>& address, Successor old, Successor newValue) const;
+    Successor CAS(std::atomic<Successor> &address, Successor old, Successor newValue) const;
 
     int flipCoin();
 
