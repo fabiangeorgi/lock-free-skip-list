@@ -452,10 +452,10 @@ void SkipList::print() {
     std::cout << std::endl;
 }
 
-bool SkipList::flipCoin() {
+int SkipList::flipCoin() {
     static thread_local std::mt19937 generator;
-    std::uniform_int_distribution<int> distribution(0, 4);
-    return distribution(generator) == 0;
+    std::uniform_int_distribution<int> distribution(0, 1);
+    return distribution(generator);
 }
 
 Successor SkipList::CAS(std::atomic<Successor> &address, Successor old, Successor newValue) const {
