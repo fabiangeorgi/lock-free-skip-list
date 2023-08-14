@@ -137,11 +137,13 @@ bool SkipList::insert(Key key, Element element) {
             return false;
         }
 
+        insertedNodes.emplace_back(prevNode, newNode);
+
         // check if tower became superfluous
         // root node was already inserted, but will now be deleted
         if (newRNode->successor.load().marked()) {
             // if not a root node, delete it
-            if (result == newNode && newNode != newRNode) {
+            for (auto &[prevNode, nextNode]: insertedNodes) {
                 deleteNode(prevNode, newNode);
             }
             return true;
